@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  color       String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
+}
+
+model Location {
+  id               String            @id @default(cuid())
+  name             String            @unique
+  type             String            @default("WAREHOUSE")
+  address          String?
+  notes            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  inventory        Inventory[]
+  stockAdjustments StockAdjustment[]
+  deliveryItems    DeliveryItem[]
+  returnItems      ReturnItem[]
+}
+
+model Supplier {
+  id             String          @id @default(cuid())
+  name           String
+  contactName    String?
+  email          String?
+  phone          String?
+  address        String?
+  notes          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  deliveries     Delivery[]
+  purchaseOrders PurchaseOrder[]
+}
+
+model Product {
+  id                 String              @id @default(cuid())
+  name               String
+  sku                String              @unique
+  description        String?
+  categoryId         String?
+  category           Category?           @relation(fields: [categoryId], references: [id])
+  unit               String              @default("Stück")
+  purchasePriceCt    Int                 @default(0)
+  minStockLevel      Int                 @default(0)
+  reorderPoint       Int                 @default(0)
+  reorderQty         Int                 @default(0)
+  isActive           Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  inventory          Inventory[]
+  stockAdjustments   StockAdjustment[]
+  deliveryItems      DeliveryItem[]
+  settlementItems    SettlementItem[]
+  purchaseOrderItems PurchaseOrderItem[]
+  returnItems        ReturnItem[]
+}
+
+model Inventory {
+  id         String   @id @default(cuid())
+  productId  String
+  locationId String
+  quantity   Int      @default(0)
+  updatedAt  DateTime @updatedAt
+  product    Product  @relation(fields: [productId], references: [id])
+  location   Location @relation(fields: [locationId], references: [id])
+
+  @@unique([productId, locationId])
+}
+
+model StockAdjustment {
+  id         String   @id @default(cuid())
+  productId  String
+  locationId String
+  delta      Int
+  reason     String
+  note       String?
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id])
+  location   Location @relation(fields: [locationId], references: [id])
+}
+
+model Delivery {
+  id           String         @id @default(cuid())
+  supplierId   String
+  supplier     Supplier       @relation(fields: [supplierId], references: [id])
+  status       String         @default("PENDING")
+  deliveryDate DateTime?
+  notes        String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  items        DeliveryItem[]
+  settlement   Settlement?
+  returns      Return[]
+}
+
+model DeliveryItem {
+  id              String   @id @default(cuid())
+  deliveryId      String
+  delivery        Delivery @relation(fields: [deliveryId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id])
+  locationId      String
+  location        Location @relation(fields: [locationId], references: [id])
+  quantitySent    Int
+  expectedPriceCt Int?
+
+  @@unique([deliveryId, productId])
+}
+
+model Settlement {
+  id            String           @id @default(cuid())
+  deliveryId    String           @unique
+  delivery      Delivery         @relation(fields: [deliveryId], references: [id])
+  settledAt     DateTime         @default(now())
+  totalAmountCt Int
+  notes         String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  items         SettlementItem[]
+}
+
+model SettlementItem {
+  id            String     @id @default(cuid())
+  settlementId  String
+  settlement    Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product    @relation(fields: [productId], references: [id])
+  quantitySold  Int
+  totalAmountCt Int
+
+  @@unique([settlementId, productId])
+}
+
+model PurchaseOrder {
+  id          String              @id @default(cuid())
+  supplierId  String?
+  supplier    Supplier?           @relation(fields: [supplierId], references: [id])
+  status      String              @default("DRAFT")
+  orderedAt   DateTime?
+  receivedAt  DateTime?
+  notes       String?
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
+  items       PurchaseOrderItem[]
+}
+
+model PurchaseOrderItem {
+  id               String        @id @default(cuid())
+  purchaseOrderId  String
+  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product       @relation(fields: [productId], references: [id])
+  quantityOrdered  Int
+  quantityReceived Int           @default(0)
+  unitPriceCt      Int           @default(0)
+
+  @@unique([purchaseOrderId, productId])
+}
+
+model Return {
+  id         String       @id @default(cuid())
+  deliveryId String?
+  delivery   Delivery?    @relation(fields: [deliveryId], references: [id])
+  returnDate DateTime     @default(now())
+  notes      String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  items      ReturnItem[]
+}
+
+model ReturnItem {
+  id               String   @id @default(cuid())
+  returnId         String
+  return           Return   @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id])
+  locationId       String
+  location         Location @relation(fields: [locationId], references: [id])
+  quantityReturned Int
+}
