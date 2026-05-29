@@ -5,7 +5,7 @@ export async function GET() {
   const adjustments = await prisma.stockAdjustment.findMany({
     include: { product: true, location: true },
     orderBy: { createdAt: 'desc' },
-    take: 100,
+    take: 1000,
   })
   return NextResponse.json(adjustments)
 }

@@ -12,6 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { centsToEuro } from '@/lib/money'
+import { ExportButton } from '@/components/ExportButton'
 import { SlidersHorizontal } from 'lucide-react'
 
 interface InventoryData {
@@ -100,7 +101,11 @@ export default function InventoryPage() {
 
   return (
     <div>
-      <PageHeader title="Bestand" description="Lagerbestand je Produkt und Standort" />
+      <PageHeader
+        title="Bestand"
+        description="Lagerbestand je Produkt und Standort"
+        actions={<ExportButton href="/api/export/inventory" />}
+      />
 
       <div className="flex items-center gap-2 mb-4">
         <Input

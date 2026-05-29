@@ -29,7 +29,7 @@ const navItems = [
   { href: '/settlements', label: 'Abrechnungen', icon: PackageCheck },
   { href: '/purchase-orders', label: 'Einkauf', icon: ShoppingCart },
   { href: '/returns', label: 'Retouren', icon: RotateCcw },
-  { href: '/stock-adjustments', label: 'Korrekturen', icon: ArrowLeftRight },
+  { href: '/stock-adjustments', label: 'Lagerbewegungen', icon: ArrowLeftRight },
   { href: '/analytics', label: 'Analyse', icon: BarChart3 },
 ]
 

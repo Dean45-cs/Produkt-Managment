@@ -23,10 +23,10 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()
-  const { name, sku, description, categoryId, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
+  const { name, sku, description, imageUrl, categoryId, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
   const product = await prisma.product.update({
     where: { id },
-    data: { name, sku, description, categoryId: categoryId || null, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty },
+    data: { name, sku, description, imageUrl: imageUrl || null, categoryId: categoryId || null, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty },
     include: { category: true },
   })
   return NextResponse.json(product)

@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { centsToDecimal, euroToCents } from '@/lib/money'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2, Wand2 } from 'lucide-react'
 
 interface OrderItem {
   productId: string
@@ -47,6 +47,27 @@ export default function NewPurchaseOrderPage() {
       router.push(`/purchase-orders/${d.id}`)
     },
   })
+
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
+
+  async function loadSuggestions() {
+    setLoadingSuggestions(true)
+    try {
+      const suggestions: Array<{ productId: string; suggestedQty: number; unitPriceCt: number }> =
+        await fetch('/api/purchase-orders/suggestions').then((r) => r.json())
+      if (!suggestions.length) {
+        alert('Aktuell sind keine Produkte unter dem Nachbestellpunkt.')
+        return
+      }
+      setItems(suggestions.map((s) => ({
+        productId: s.productId,
+        quantityOrdered: s.suggestedQty,
+        unitPriceCt: s.unitPriceCt,
+      })))
+    } finally {
+      setLoadingSuggestions(false)
+    }
+  }
 
   function updateItem(idx: number, field: keyof OrderItem, value: string | number) {
     setItems((prev) => prev.map((item, i) => i === idx ? { ...item, [field]: value } : item))
@@ -85,9 +106,14 @@ export default function NewPurchaseOrderPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Produkte</CardTitle>
-              <Button type="button" variant="outline" size="sm" onClick={() => setItems((p) => [...p, { productId: '', quantityOrdered: 1, unitPriceCt: 0 }])}>
-                <Plus className="h-4 w-4" /> Produkt hinzufügen
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="secondary" size="sm" onClick={loadSuggestions} disabled={loadingSuggestions}>
+                  <Wand2 className="h-4 w-4" /> {loadingSuggestions ? 'Lädt...' : 'Nachbestellvorschläge'}
+                </Button>
+                <Button type="button" variant="outline" size="sm" onClick={() => setItems((p) => [...p, { productId: '', quantityOrdered: 1, unitPriceCt: 0 }])}>
+                  <Plus className="h-4 w-4" /> Produkt hinzufügen
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">

@@ -12,6 +12,9 @@ import { centsToEuro } from '@/lib/money'
 import { calcProfit } from '@/lib/calculations'
 import { formatDate } from '@/lib/utils'
 import { Pencil } from 'lucide-react'
+import {
+  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+} from 'recharts'
 
 export default function ProductDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -31,6 +34,16 @@ export default function ProductDetailPage() {
   const avgPrice = totalQtySold > 0 ? Math.round(totalRevenue / totalQtySold) : 0
   const { profit, marginPct } = calcProfit(totalRevenue, totalQtySold, product.purchasePriceCt)
 
+  // Zeitreihe je Abrechnung (chronologisch aufsteigend) für Ø-Preis- und Gewinnverlauf
+  const trend = [...(product.settlementItems || [])]
+    .map((si: { settlement: { settledAt: string }; quantitySold: number; totalAmountCt: number }) => ({
+      date: si.settlement.settledAt,
+      'Ø-Preis': si.quantitySold > 0 ? si.totalAmountCt / si.quantitySold / 100 : 0,
+      Gewinn: (si.totalAmountCt - si.quantitySold * product.purchasePriceCt) / 100,
+    }))
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .map((d) => ({ ...d, label: formatDate(d.date) }))
+
   return (
     <div>
       <PageHeader
@@ -42,6 +55,13 @@ export default function ProductDetailPage() {
           </Link>
         }
       />
+
+      {product.imageUrl && (
+        <div className="mb-6">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={product.imageUrl} alt={product.name} className="h-40 w-40 rounded-lg object-cover border" />
+        </div>
+      )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card><CardContent className="pt-4">
@@ -132,6 +152,27 @@ export default function ProductDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader><CardTitle>Ø-Preis- & Gewinnverlauf</CardTitle></CardHeader>
+        <CardContent>
+          {trend.length < 2 ? (
+            <p className="text-sm text-muted-foreground">Mindestens 2 Abrechnungen nötig für einen Verlauf</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={trend}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                <Legend />
+                <Line type="monotone" dataKey="Ø-Preis" stroke="#8b5cf6" strokeWidth={2} dot />
+                <Line type="monotone" dataKey="Gewinn" stroke="#34d399" strokeWidth={2} dot />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

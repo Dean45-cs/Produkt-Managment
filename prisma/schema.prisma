@@ -50,6 +50,7 @@ model Product {
   name               String
   sku                String              @unique
   description        String?
+  imageUrl           String?
   categoryId         String?
   category           Category?           @relation(fields: [categoryId], references: [id])
   unit               String              @default("Stück")
@@ -116,6 +117,7 @@ model DeliveryItem {
   location        Location @relation(fields: [locationId], references: [id])
   quantitySent    Int
   expectedPriceCt Int?
+  batchNumber     String?
 
   @@unique([deliveryId, productId])
 }

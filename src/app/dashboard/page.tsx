@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -106,6 +107,26 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader title="Dashboard" description="Übersicht über Bestand, Umsatz und offene Posten" />
+
+      {data?.lowStockCount ? (
+        <Link
+          href="/products"
+          className="flex items-center gap-3 mb-6 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 hover:bg-yellow-100 transition-colors"
+        >
+          <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+          <div className="flex-1">
+            <span className="font-semibold">{data.lowStockCount} Produkt{data.lowStockCount === 1 ? '' : 'e'}</span>
+            {' '}unter dem Nachbestellpunkt
+            {data.lowStockProducts.length > 0 && (
+              <span className="text-yellow-700">
+                {' '}— z.B. {data.lowStockProducts.slice(0, 3).map((p) => p.name).join(', ')}
+                {data.lowStockProducts.length > 3 ? ` +${data.lowStockProducts.length - 3} weitere` : ''}
+              </span>
+            )}
+          </div>
+          <span className="font-medium underline whitespace-nowrap">Jetzt prüfen →</span>
+        </Link>
+      ) : null}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard

@@ -84,24 +84,26 @@ export default function DeliveryDetailPage() {
                 <TableRow>
                   <TableHead>Produkt</TableHead>
                   <TableHead>Standort</TableHead>
+                  <TableHead>Charge</TableHead>
                   <TableHead>Menge</TableHead>
                   <TableHead>Erw. Preis</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {delivery.items.map((item: { id: string; product: { name: string; sku: string }; location: { name: string }; quantitySent: number; expectedPriceCt?: number }) => (
+                {delivery.items.map((item: { id: string; product: { name: string; sku: string }; location: { name: string }; quantitySent: number; expectedPriceCt?: number; batchNumber?: string }) => (
                   <TableRow key={item.id}>
                     <TableCell>
                       <p className="font-medium">{item.product.name}</p>
                       <p className="text-xs text-muted-foreground">{item.product.sku}</p>
                     </TableCell>
                     <TableCell>{item.location.name}</TableCell>
+                    <TableCell className="font-mono text-xs">{item.batchNumber || '—'}</TableCell>
                     <TableCell>{item.quantitySent}</TableCell>
                     <TableCell>{item.expectedPriceCt ? centsToEuro(item.expectedPriceCt) : '—'}</TableCell>
                   </TableRow>
                 ))}
                 <TableRow>
-                  <TableCell colSpan={2} className="font-bold">Gesamt</TableCell>
+                  <TableCell colSpan={3} className="font-bold">Gesamt</TableCell>
                   <TableCell className="font-bold">{totalQty}</TableCell>
                   <TableCell></TableCell>
                 </TableRow>

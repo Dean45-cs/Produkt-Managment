@@ -15,10 +15,27 @@ interface RevenueData {
   forecast: Array<{ period: string; revenue: number; quantity: number }>
 }
 
+interface SupplierStat {
+  supplierId: string
+  name: string
+  revenue: number
+  cost: number
+  profit: number
+  quantity: number
+  settlementCount: number
+  avgPriceCt: number
+  marginPct: number
+}
+
 export default function AnalyticsPage() {
   const { data, isLoading } = useQuery<RevenueData>({
     queryKey: ['analytics-revenue'],
     queryFn: () => fetch('/api/analytics/revenue').then((r) => r.json()),
+  })
+
+  const { data: suppliers = [] } = useQuery<SupplierStat[]>({
+    queryKey: ['analytics-suppliers'],
+    queryFn: () => fetch('/api/analytics/suppliers').then((r) => r.json()),
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>
@@ -34,6 +51,12 @@ export default function AnalyticsPage() {
     ...(data?.history.slice(-3).map((h) => ({ period: h.period, Historisch: h.revenue / 100 })) || []),
     ...(data?.forecast.map((f) => ({ period: f.period, Forecast: f.revenue / 100 })) || []),
   ]
+
+  const supplierChart = suppliers.map((s) => ({
+    name: s.name,
+    'Ø-Preis': s.avgPriceCt / 100,
+    Umsatz: s.revenue / 100,
+  }))
 
   const totalRevenue = data?.history.reduce((s, h) => s + h.revenue, 0) || 0
   const totalProfit = data?.history.reduce((s, h) => s + h.profit, 0) || 0
@@ -152,6 +175,58 @@ export default function AnalyticsPage() {
                   })}
                 </tbody>
               </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Lieferanten-Vergleich</CardTitle>
+          <p className="text-sm text-muted-foreground">Welcher Distributor zahlt die höheren Durchschnittspreise?</p>
+        </CardHeader>
+        <CardContent>
+          {suppliers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Noch keine Abrechnungsdaten je Lieferant</p>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <ResponsiveContainer width="100%" height={Math.max(180, suppliers.length * 48)}>
+                <BarChart data={supplierChart} layout="vertical" margin={{ left: 20 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                  <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
+                  <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                  <Legend />
+                  <Bar dataKey="Ø-Preis" fill="#8b5cf6" radius={[0, 2, 2, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-2">Lieferant</th>
+                      <th className="text-right py-2 px-2">Umsatz</th>
+                      <th className="text-right py-2 px-2">Ø-Preis</th>
+                      <th className="text-right py-2 px-2">Gewinn</th>
+                      <th className="text-right py-2 px-2">Marge</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {suppliers.map((s) => (
+                      <tr key={s.supplierId} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-2 font-medium">{s.name}</td>
+                        <td className="py-2 px-2 text-right">{centsToEuro(s.revenue)}</td>
+                        <td className="py-2 px-2 text-right font-medium text-purple-700">{centsToEuro(s.avgPriceCt)}</td>
+                        <td className={`py-2 px-2 text-right ${s.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          {centsToEuro(s.profit)}
+                        </td>
+                        <td className="py-2 px-2 text-right">{s.marginPct.toFixed(1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </CardContent>

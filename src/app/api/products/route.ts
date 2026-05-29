@@ -30,7 +30,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { name, sku, description, categoryId, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
+  const { name, sku, description, imageUrl, categoryId, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
   if (!name?.trim() || !sku?.trim()) return NextResponse.json({ error: 'Name and SKU required' }, { status: 400 })
 
   const product = await prisma.product.create({
@@ -38,6 +38,7 @@ export async function POST(req: Request) {
       name: name.trim(),
       sku: sku.trim(),
       description,
+      imageUrl: imageUrl || null,
       categoryId: categoryId || null,
       unit: unit || 'Stück',
       purchasePriceCt: purchasePriceCt || 0,

@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useQuery } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
@@ -8,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { centsToDecimal, euroToCents } from '@/lib/money'
+import { ImagePlus, Loader2, X } from 'lucide-react'
 
 interface ProductFormData {
   name: string
@@ -22,16 +24,39 @@ interface ProductFormData {
 }
 
 interface Props {
-  defaultValues?: Partial<ProductFormData & { purchasePriceCt: number }>
+  defaultValues?: Partial<ProductFormData & { purchasePriceCt: number; imageUrl: string | null }>
   onSubmit: (data: Record<string, unknown>) => void
   isLoading?: boolean
 }
 
 export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
+  const [imageUrl, setImageUrl] = useState<string | null>(defaultValues?.imageUrl ?? null)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
   const { data: categories = [] } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ['categories'],
     queryFn: () => fetch('/api/categories').then((r) => r.json()),
   })
+
+  async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploading(true)
+    setUploadError(null)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload fehlgeschlagen')
+      setImageUrl(data.url)
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const { register, handleSubmit, setValue, watch } = useForm<ProductFormData>({
     defaultValues: {
@@ -52,6 +77,7 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
       name: data.name,
       sku: data.sku,
       description: data.description,
+      imageUrl,
       categoryId: data.categoryId || null,
       unit: data.unit,
       purchasePriceCt: euroToCents(data.purchasePrice),
@@ -77,6 +103,36 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
       <div className="space-y-1.5">
         <Label htmlFor="description">Beschreibung</Label>
         <Textarea id="description" {...register('description')} rows={2} />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Produktbild</Label>
+        <div className="flex items-center gap-4">
+          <div className="h-20 w-20 rounded-md border bg-gray-50 overflow-hidden flex items-center justify-center flex-shrink-0">
+            {imageUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={imageUrl} alt="Vorschau" className="h-full w-full object-cover" />
+            ) : (
+              <ImagePlus className="h-6 w-6 text-gray-300" />
+            )}
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <label className="inline-flex items-center gap-2 px-3 py-1.5 text-sm rounded-md border cursor-pointer hover:bg-accent">
+                {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
+                {uploading ? 'Lädt...' : imageUrl ? 'Ändern' : 'Bild hochladen'}
+                <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} disabled={uploading} />
+              </label>
+              {imageUrl && (
+                <Button type="button" variant="ghost" size="sm" onClick={() => setImageUrl(null)} className="text-destructive">
+                  <X className="h-4 w-4" /> Entfernen
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">JPG, PNG, WebP oder GIF · max. 5 MB</p>
+            {uploadError && <p className="text-xs text-destructive">{uploadError}</p>}
+          </div>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">

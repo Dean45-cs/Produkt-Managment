@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { centsToEuro } from '@/lib/money'
 import { calcProfit } from '@/lib/calculations'
 import { formatDate } from '@/lib/utils'
+import { ExportButton } from '@/components/ExportButton'
 import { Eye } from 'lucide-react'
 
 interface Settlement {
@@ -27,7 +28,11 @@ export default function SettlementsPage() {
 
   return (
     <div>
-      <PageHeader title="Abrechnungen" description="Alle Abrechnungen von Distributoren" />
+      <PageHeader
+        title="Abrechnungen"
+        description="Alle Abrechnungen von Distributoren"
+        actions={<ExportButton href="/api/export/settlements" />}
+      />
 
       <Card>
         <CardContent className="p-0">

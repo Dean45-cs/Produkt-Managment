@@ -18,6 +18,7 @@ interface DeliveryItem {
   locationId: string
   quantitySent: number
   expectedPriceCt: number
+  batchNumber: string
 }
 
 export default function NewDeliveryPage() {
@@ -25,7 +26,7 @@ export default function NewDeliveryPage() {
   const qc = useQueryClient()
   const [supplierId, setSupplierId] = useState('')
   const [notes, setNotes] = useState('')
-  const [items, setItems] = useState<DeliveryItem[]>([{ productId: '', locationId: '', quantitySent: 1, expectedPriceCt: 0 }])
+  const [items, setItems] = useState<DeliveryItem[]>([{ productId: '', locationId: '', quantitySent: 1, expectedPriceCt: 0, batchNumber: '' }])
 
   const { data: suppliers = [] } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ['suppliers'],
@@ -58,7 +59,7 @@ export default function NewDeliveryPage() {
   }
 
   function addItem() {
-    setItems((prev) => [...prev, { productId: '', locationId: '', quantitySent: 1, expectedPriceCt: 0 }])
+    setItems((prev) => [...prev, { productId: '', locationId: '', quantitySent: 1, expectedPriceCt: 0, batchNumber: '' }])
   }
 
   function removeItem(idx: number) {
@@ -109,41 +110,47 @@ export default function NewDeliveryPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {items.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-5 gap-3 items-end p-3 rounded-lg border bg-gray-50">
-                <div className="col-span-2 space-y-1.5">
-                  <Label>Produkt</Label>
-                  <Select value={item.productId} onValueChange={(v) => {
-                    const p = products.find((pr) => pr.id === v)
-                    updateItem(idx, 'productId', v)
-                    if (p) updateItem(idx, 'expectedPriceCt', p.purchasePriceCt)
-                  }}>
-                    <SelectTrigger><SelectValue placeholder="Produkt..." /></SelectTrigger>
-                    <SelectContent>
-                      {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.sku})</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Standort</Label>
-                  <Select value={item.locationId} onValueChange={(v) => updateItem(idx, 'locationId', v)}>
-                    <SelectTrigger><SelectValue placeholder="Lager..." /></SelectTrigger>
-                    <SelectContent>
-                      {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Menge</Label>
-                  <Input type="number" min="1" value={item.quantitySent} onChange={(e) => updateItem(idx, 'quantitySent', Number(e.target.value))} />
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 space-y-1.5">
-                    <Label>Erw. Preis (€)</Label>
-                    <Input type="number" step="0.01" min="0" value={centsToDecimal(item.expectedPriceCt)} onChange={(e) => updateItem(idx, 'expectedPriceCt', euroToCents(Number(e.target.value)))} />
+              <div key={idx} className="p-3 rounded-lg border bg-gray-50 space-y-3">
+                <div className="grid grid-cols-5 gap-3 items-end">
+                  <div className="col-span-2 space-y-1.5">
+                    <Label>Produkt</Label>
+                    <Select value={item.productId} onValueChange={(v) => {
+                      const p = products.find((pr) => pr.id === v)
+                      updateItem(idx, 'productId', v)
+                      if (p) updateItem(idx, 'expectedPriceCt', p.purchasePriceCt)
+                    }}>
+                      <SelectTrigger><SelectValue placeholder="Produkt..." /></SelectTrigger>
+                      <SelectContent>
+                        {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.sku})</SelectItem>)}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(idx)} className="mt-5 text-destructive">
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  <div className="space-y-1.5">
+                    <Label>Standort</Label>
+                    <Select value={item.locationId} onValueChange={(v) => updateItem(idx, 'locationId', v)}>
+                      <SelectTrigger><SelectValue placeholder="Lager..." /></SelectTrigger>
+                      <SelectContent>
+                        {locations.map((l) => <SelectItem key={l.id} value={l.id}>{l.name}</SelectItem>)}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Menge</Label>
+                    <Input type="number" min="1" value={item.quantitySent} onChange={(e) => updateItem(idx, 'quantitySent', Number(e.target.value))} />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex-1 space-y-1.5">
+                      <Label>Erw. Preis (€)</Label>
+                      <Input type="number" step="0.01" min="0" value={centsToDecimal(item.expectedPriceCt)} onChange={(e) => updateItem(idx, 'expectedPriceCt', euroToCents(Number(e.target.value)))} />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeItem(idx)} className="mt-5 text-destructive">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-1.5 max-w-xs">
+                  <Label>Chargen-/Lot-Nr. (optional)</Label>
+                  <Input value={item.batchNumber} onChange={(e) => updateItem(idx, 'batchNumber', e.target.value)} placeholder="z.B. LOT-2024-001" />
                 </div>
               </div>
             ))}

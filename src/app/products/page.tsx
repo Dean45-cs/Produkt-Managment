@@ -9,13 +9,15 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { centsToEuro } from '@/lib/money'
-import { Plus, Search, Pencil, Trash2, Eye } from 'lucide-react'
+import { ExportButton } from '@/components/ExportButton'
+import { Plus, Search, Pencil, Trash2, Eye, Package } from 'lucide-react'
 
 interface Product {
   id: string
   name: string
   sku: string
   unit: string
+  imageUrl?: string | null
   purchasePriceCt: number
   minStockLevel: number
   reorderPoint: number
@@ -51,9 +53,12 @@ export default function ProductsPage() {
         title="Produkte"
         description="Alle Produkte verwalten"
         actions={
-          <Link href="/products/new">
-            <Button><Plus className="h-4 w-4" /> Neues Produkt</Button>
-          </Link>
+          <>
+            <ExportButton href="/api/export/products" />
+            <Link href="/products/new">
+              <Button><Plus className="h-4 w-4" /> Neues Produkt</Button>
+            </Link>
+          </>
         }
       />
 
@@ -92,7 +97,19 @@ export default function ProductsPage() {
               products.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-mono text-xs">{p.sku}</TableCell>
-                  <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {p.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={p.imageUrl} alt={p.name} className="h-8 w-8 rounded object-cover border" />
+                      ) : (
+                        <div className="h-8 w-8 rounded bg-gray-100 border flex items-center justify-center text-gray-300">
+                          <Package className="h-4 w-4" />
+                        </div>
+                      )}
+                      {p.name}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {p.category && (
                       <span
