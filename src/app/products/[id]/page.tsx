@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { centsToEuro } from '@/lib/money'
 import { calcProfit } from '@/lib/calculations'
 import { formatDate } from '@/lib/utils'
+import { StarRating } from '@/components/ui/star-rating'
+import { ProductReviews } from '@/components/features/ProductReviews'
 import { Pencil } from 'lucide-react'
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
@@ -33,6 +35,10 @@ export default function ProductDetailPage() {
   const totalQtySold = product.settlementItems?.reduce((s: number, i: { quantitySold: number }) => s + i.quantitySold, 0) || 0
   const avgPrice = totalQtySold > 0 ? Math.round(totalRevenue / totalQtySold) : 0
   const { profit, marginPct } = calcProfit(totalRevenue, totalQtySold, product.purchasePriceCt)
+
+  const reviews: Array<{ rating: number }> = product.reviews || []
+  const ratingCount = reviews.length
+  const ratingAvg = ratingCount > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / ratingCount : 0
 
   // Zeitreihe je Abrechnung (chronologisch aufsteigend) für Ø-Preis- und Gewinnverlauf
   const trend = [...(product.settlementItems || [])]
@@ -63,7 +69,7 @@ export default function ProductDetailPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Card><CardContent className="pt-4">
           <p className="text-xs text-muted-foreground">Kategorie</p>
           <p className="font-medium">{product.category?.name || '—'}</p>
@@ -81,6 +87,18 @@ export default function ProductDetailPage() {
           <p className={`font-medium ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {centsToEuro(profit)} ({marginPct.toFixed(1)}%)
           </p>
+        </CardContent></Card>
+        <Card><CardContent className="pt-4">
+          <p className="text-xs text-muted-foreground">Kundenzufriedenheit</p>
+          {ratingCount > 0 ? (
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium">{ratingAvg.toFixed(1)}</span>
+              <StarRating value={ratingAvg} size={14} />
+              <span className="text-xs text-muted-foreground">({ratingCount})</span>
+            </div>
+          ) : (
+            <p className="font-medium text-muted-foreground">—</p>
+          )}
         </CardContent></Card>
       </div>
 
@@ -173,6 +191,8 @@ export default function ProductDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      <ProductReviews productId={id} />
     </div>
   )
 }

@@ -9,6 +9,7 @@ async function main() {
   console.log('Seeding database...')
 
   // Clear existing data
+  await prisma.review.deleteMany()
   await prisma.returnItem.deleteMany()
   await prisma.return.deleteMany()
   await prisma.settlementItem.deleteMany()
@@ -32,8 +33,9 @@ async function main() {
   const loc1 = await prisma.location.create({ data: { name: 'Hauptlager Berlin', type: 'WAREHOUSE', address: 'Musterstraße 1, 10115 Berlin' } })
   const loc2 = await prisma.location.create({ data: { name: 'Außenlager Hamburg', type: 'WAREHOUSE', address: 'Hafenweg 5, 20457 Hamburg' } })
 
-  // Suppliers
+  // Suppliers (zwei Distributoren für den Vergleich)
   const sup1 = await prisma.supplier.create({ data: { name: 'TechDistribution GmbH', contactName: 'Max Müller', email: 'max@techdist.de', phone: '030 1234567' } })
+  const sup2 = await prisma.supplier.create({ data: { name: 'ElektroHandel Nord', contactName: 'Sabine Klein', email: 'klein@elektronord.de', phone: '040 7654321' } })
 
   // Products
   const prod1 = await prisma.product.create({ data: { name: 'HDMI Kabel 2m', sku: 'HDMI-001', categoryId: cat2.id, unit: 'Stück', purchasePriceCt: 599, minStockLevel: 20, reorderPoint: 50, reorderQty: 100 } })
@@ -82,7 +84,47 @@ async function main() {
         ] },
       },
     })
+
+    // Zweiter Distributor: kleinere Mengen und ~10% niedrigere Ø-Preise
+    const d2qty1 = Math.round(m.qty1 * 0.5)
+    const d2qty2 = Math.round(m.qty2 * 0.5)
+    const d2a1 = Math.round(m.a1 * 0.5 * 0.9)
+    const d2a2 = Math.round(m.a2 * 0.5 * 0.9)
+    const delivery2 = await prisma.delivery.create({
+      data: {
+        supplierId: sup2.id,
+        status: 'SETTLED',
+        deliveryDate: new Date(m.settledAt.getTime() - 14 * 24 * 60 * 60 * 1000),
+        items: { create: [
+          { productId: prod1.id, locationId: loc1.id, quantitySent: d2qty1 },
+          { productId: prod2.id, locationId: loc1.id, quantitySent: d2qty2 },
+        ] },
+      },
+    })
+    await prisma.settlement.create({
+      data: {
+        deliveryId: delivery2.id,
+        settledAt: m.settledAt,
+        totalAmountCt: d2a1 + d2a2,
+        items: { create: [
+          { productId: prod1.id, quantitySold: d2qty1, totalAmountCt: d2a1 },
+          { productId: prod2.id, quantitySold: d2qty2, totalAmountCt: d2a2 },
+        ] },
+      },
+    })
   }
+
+  // Kundenbewertungen (Sterne) — zeigen, wie zufrieden die Kunden waren
+  await prisma.review.createMany({ data: [
+    { productId: prod1.id, rating: 5, customerName: 'Anna M.', comment: 'Top Kabel, funktioniert einwandfrei.', createdAt: new Date('2026-03-02') },
+    { productId: prod1.id, rating: 4, customerName: 'Jens K.', comment: 'Gut, aber etwas kurz.', createdAt: new Date('2026-04-11') },
+    { productId: prod1.id, rating: 5, customerName: 'Petra L.', createdAt: new Date('2026-05-05') },
+    { productId: prod2.id, rating: 4, customerName: 'Tom B.', comment: 'Solider USB-Hub fürs Büro.', createdAt: new Date('2026-03-20') },
+    { productId: prod2.id, rating: 3, customerName: 'Lisa R.', comment: 'Ein Port wackelt etwas.', createdAt: new Date('2026-04-25') },
+    { productId: prod3.id, rating: 5, customerName: 'Mehmet Y.', comment: 'Beste Maus in dieser Preisklasse!', createdAt: new Date('2026-05-12') },
+    { productId: prod3.id, rating: 5, customerName: 'Clara D.', createdAt: new Date('2026-05-18') },
+    { productId: prod3.id, rating: 4, customerName: 'Stefan W.', comment: 'Sehr gut, Akku hält lange.', createdAt: new Date('2026-05-20') },
+  ] })
 
   console.log('Seed complete! Kategorien, Standorte, Lieferanten, Produkte, Bestand und Demo-Abrechnungen angelegt.')
 }
