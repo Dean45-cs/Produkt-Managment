@@ -14,7 +14,7 @@ export async function GET() {
     allSettlements,
   ] = await Promise.all([
     prisma.delivery.findMany({
-      where: { status: 'DELIVERED' },
+      where: { status: { in: ['DELIVERED', 'PARTIALLY_SETTLED'] } },
       include: { supplier: true, items: { include: { product: true } } },
     }),
     prisma.product.findMany({

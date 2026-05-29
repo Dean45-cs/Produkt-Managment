@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { deliveryProgress, nextDeliveryStatus } from '@/lib/delivery'
 
 export async function GET() {
   const returns = await prisma.return.findMany({
@@ -51,6 +52,25 @@ export async function POST(req: Request) {
         create: { productId: item.productId, locationId: item.locationId, quantity: item.quantityReturned },
         update: { quantity: { increment: item.quantityReturned } },
       })
+    }
+
+    // Retoure reduziert die offene Menge → Lieferungsstatus ggf. anpassen
+    if (deliveryId) {
+      const delivery = await tx.delivery.findUnique({
+        where: { id: deliveryId },
+        include: {
+          items: true,
+          settlements: { include: { items: true } },
+          returns: { include: { items: true } },
+        },
+      })
+      if (delivery) {
+        const progress = deliveryProgress(delivery)
+        const status = nextDeliveryStatus(delivery.status, progress.totalOpen, delivery.settlements.length > 0)
+        if (status !== delivery.status) {
+          await tx.delivery.update({ where: { id: deliveryId }, data: { status } })
+        }
+      }
     }
 
     return r

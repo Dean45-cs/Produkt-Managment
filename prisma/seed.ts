@@ -114,6 +114,32 @@ async function main() {
     })
   }
 
+  // Demo: aktuell offene Lieferung, die nur teilweise abgerechnet wurde
+  // (Distributor hat von 10 HDMI-Kabeln erst 5 verkauft, USB-Hubs noch gar nicht)
+  const openDelivery = await prisma.delivery.create({
+    data: {
+      supplierId: sup1.id,
+      status: 'PARTIALLY_SETTLED',
+      deliveryDate: new Date('2026-05-20'),
+      notes: 'Distributor hat bisher nur einen Teil verkauft.',
+      items: { create: [
+        { productId: prod1.id, locationId: loc1.id, quantitySent: 10 },
+        { productId: prod2.id, locationId: loc1.id, quantitySent: 8 },
+      ] },
+    },
+  })
+  await prisma.settlement.create({
+    data: {
+      deliveryId: openDelivery.id,
+      settledAt: new Date('2026-05-26'),
+      totalAmountCt: 5 * 9500,
+      notes: '1. Teilabrechnung — 5 von 10 HDMI-Kabeln verkauft',
+      items: { create: [
+        { productId: prod1.id, quantitySold: 5, totalAmountCt: 5 * 9500 },
+      ] },
+    },
+  })
+
   // Kundenbewertungen (Sterne) — zeigen, wie zufrieden die Kunden waren
   await prisma.review.createMany({ data: [
     { productId: prod1.id, rating: 5, customerName: 'Anna M.', comment: 'Top Kabel, funktioniert einwandfrei.', createdAt: new Date('2026-03-02') },

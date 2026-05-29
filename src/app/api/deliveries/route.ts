@@ -14,7 +14,7 @@ export async function GET(req: Request) {
     include: {
       supplier: true,
       items: { include: { product: true, location: true } },
-      settlement: true,
+      settlements: true,
     },
     orderBy: { createdAt: 'desc' },
   })

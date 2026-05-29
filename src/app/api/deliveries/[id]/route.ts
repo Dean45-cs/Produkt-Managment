@@ -8,7 +8,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     include: {
       supplier: true,
       items: { include: { product: true, location: true } },
-      settlement: { include: { items: { include: { product: true } } } },
+      settlements: { include: { items: { include: { product: true } } }, orderBy: { settledAt: 'asc' } },
       returns: { include: { items: { include: { product: true, location: true } } } },
     },
   })
@@ -60,7 +60,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
   const updated = await prisma.delivery.findUnique({
     where: { id },
-    include: { supplier: true, items: { include: { product: true, location: true } }, settlement: true },
+    include: { supplier: true, items: { include: { product: true, location: true } }, settlements: true },
   })
   return NextResponse.json(updated)
 }

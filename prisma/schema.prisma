@@ -116,7 +116,7 @@ model Delivery {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   items        DeliveryItem[]
-  settlement   Settlement?
+  settlements  Settlement[]
   returns      Return[]
 }
 
@@ -137,7 +137,7 @@ model DeliveryItem {
 
 model Settlement {
   id            String           @id @default(cuid())
-  deliveryId    String           @unique
+  deliveryId    String
   delivery      Delivery         @relation(fields: [deliveryId], references: [id])
   settledAt     DateTime         @default(now())
   totalAmountCt Int
@@ -145,6 +145,8 @@ model Settlement {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   items         SettlementItem[]
+
+  @@index([deliveryId])
 }
 
 model SettlementItem {

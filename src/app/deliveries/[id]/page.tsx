@@ -1,6 +1,6 @@
 'use client'
 
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
@@ -10,25 +10,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
-import { PackageCheck, Truck } from 'lucide-react'
-
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Ausstehend',
-  DELIVERED: 'Geliefert',
-  SETTLED: 'Abgerechnet',
-  CANCELLED: 'Storniert',
-}
-
-const STATUS_VARIANTS: Record<string, 'default' | 'warning' | 'success' | 'destructive' | 'secondary'> = {
-  PENDING: 'secondary',
-  DELIVERED: 'warning',
-  SETTLED: 'success',
-  CANCELLED: 'destructive',
-}
+import { deliveryProgress, DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS } from '@/lib/delivery'
+import { PackageCheck, Truck, Eye } from 'lucide-react'
 
 export default function DeliveryDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const router = useRouter()
   const qc = useQueryClient()
 
   const { data: delivery, isLoading } = useQuery({
@@ -49,7 +35,9 @@ export default function DeliveryDetailPage() {
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>
   if (!delivery || delivery.error) return <div className="p-4">Lieferung nicht gefunden</div>
 
-  const totalQty = delivery.items.reduce((s: number, i: { quantitySent: number }) => s + i.quantitySent, 0)
+  const progress = deliveryProgress(delivery)
+  const settlements: Array<{ id: string; settledAt: string; totalAmountCt: number; notes?: string; items: Array<{ quantitySold: number }> }> = delivery.settlements || []
+  const canSettle = (delivery.status === 'DELIVERED' || delivery.status === 'PARTIALLY_SETTLED') && progress.totalOpen > 0
 
   return (
     <div>
@@ -58,22 +46,78 @@ export default function DeliveryDetailPage() {
         description={`Erstellt am ${formatDate(delivery.createdAt)}`}
         actions={
           <div className="flex items-center gap-2">
-            <Badge variant={STATUS_VARIANTS[delivery.status]}>{STATUS_LABELS[delivery.status]}</Badge>
+            <Badge variant={DELIVERY_STATUS_VARIANTS[delivery.status]}>{DELIVERY_STATUS_LABELS[delivery.status]}</Badge>
             {delivery.status === 'PENDING' && (
               <Button onClick={() => markDeliveredMutation.mutate()} disabled={markDeliveredMutation.isPending}>
                 <Truck className="h-4 w-4" /> Als geliefert markieren
               </Button>
             )}
-            {delivery.status === 'DELIVERED' && !delivery.settlement && (
+            {canSettle && (
               <Link href={`/deliveries/${id}/settle`}>
                 <Button>
-                  <PackageCheck className="h-4 w-4" /> Abrechnen
+                  <PackageCheck className="h-4 w-4" /> {settlements.length > 0 ? 'Weitere Teilabrechnung' : 'Abrechnen'}
                 </Button>
               </Link>
             )}
           </div>
         }
       />
+
+      {/* Fortschritt der Abrechnung */}
+      {delivery.status !== 'PENDING' && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle>Abrechnungsfortschritt</CardTitle>
+              <span className="text-sm text-muted-foreground">
+                {progress.totalSettled} / {progress.totalSent} Stück abgerechnet · {progress.totalOpen} offen
+              </span>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-3 w-full rounded-full bg-neutral-100 overflow-hidden mb-4">
+              <div
+                className="h-full bg-rose-600 transition-all"
+                style={{ width: `${progress.totalSent > 0 ? ((progress.totalSettled + progress.totalReturned) / progress.totalSent) * 100 : 0}%` }}
+              />
+            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Produkt</TableHead>
+                  <TableHead className="text-right">Geliefert</TableHead>
+                  <TableHead className="text-right">Abgerechnet</TableHead>
+                  <TableHead className="text-right">Retour</TableHead>
+                  <TableHead className="text-right">Offen</TableHead>
+                  <TableHead className="text-right">Erlös</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {progress.perProduct.map((p) => (
+                  <TableRow key={p.productId}>
+                    <TableCell className="font-medium">{p.productName}</TableCell>
+                    <TableCell className="text-right">{p.quantitySent}</TableCell>
+                    <TableCell className="text-right">{p.quantitySettled}</TableCell>
+                    <TableCell className="text-right">{p.quantityReturned}</TableCell>
+                    <TableCell className="text-right">
+                      {p.quantityOpen > 0 ? <span className="font-medium text-rose-600">{p.quantityOpen}</span> : <Badge variant="success">0</Badge>}
+                    </TableCell>
+                    <TableCell className="text-right">{centsToEuro(p.amountSettledCt)}</TableCell>
+                  </TableRow>
+                ))}
+                <TableRow>
+                  <TableCell className="font-bold">Gesamt</TableCell>
+                  <TableCell className="text-right font-bold">{progress.totalSent}</TableCell>
+                  <TableCell className="text-right font-bold">{progress.totalSettled}</TableCell>
+                  <TableCell className="text-right font-bold">{progress.totalReturned}</TableCell>
+                  <TableCell className="text-right font-bold">{progress.totalOpen}</TableCell>
+                  <TableCell className="text-right font-bold text-green-600">{centsToEuro(progress.amountSettledCt)}</TableCell>
+                </TableRow>
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
@@ -102,11 +146,6 @@ export default function DeliveryDetailPage() {
                     <TableCell>{item.expectedPriceCt ? centsToEuro(item.expectedPriceCt) : '—'}</TableCell>
                   </TableRow>
                 ))}
-                <TableRow>
-                  <TableCell colSpan={3} className="font-bold">Gesamt</TableCell>
-                  <TableCell className="font-bold">{totalQty}</TableCell>
-                  <TableCell></TableCell>
-                </TableRow>
               </TableBody>
             </Table>
           </CardContent>
@@ -122,7 +161,7 @@ export default function DeliveryDetailPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Status</span>
-                <Badge variant={STATUS_VARIANTS[delivery.status]}>{STATUS_LABELS[delivery.status]}</Badge>
+                <Badge variant={DELIVERY_STATUS_VARIANTS[delivery.status]}>{DELIVERY_STATUS_LABELS[delivery.status]}</Badge>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Geliefert am</span>
@@ -135,27 +174,39 @@ export default function DeliveryDetailPage() {
             </CardContent>
           </Card>
 
-          {delivery.settlement && (
-            <Card>
-              <CardHeader><CardTitle>Abrechnung</CardTitle></CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Abgerechnet am</span>
-                  <span>{formatDate(delivery.settlement.settledAt)}</span>
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Abrechnungen</CardTitle>
+                {settlements.length > 0 && <Badge variant="secondary">{settlements.length}</Badge>}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {settlements.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Noch keine Abrechnung erfasst.</p>
+              ) : (
+                <div className="space-y-2">
+                  {settlements.map((s, i) => {
+                    const qty = s.items.reduce((sum, it) => sum + it.quantitySold, 0)
+                    return (
+                      <div key={s.id} className="flex items-center justify-between rounded-lg border p-3">
+                        <div>
+                          <p className="text-sm font-medium">Abrechnung {i + 1} · {formatDate(s.settledAt)}</p>
+                          <p className="text-xs text-muted-foreground">{qty} Stück verkauft</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span className="font-bold text-green-600">{centsToEuro(s.totalAmountCt)}</span>
+                          <Link href={`/settlements/${s.id}`}>
+                            <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
+                          </Link>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Gesamtbetrag</span>
-                  <span className="font-bold text-green-600">{centsToEuro(delivery.settlement.totalAmountCt)}</span>
-                </div>
-                {delivery.settlement.items?.map((si: { id: string; product: { name: string }; quantitySold: number; totalAmountCt: number }) => (
-                  <div key={si.id} className="flex justify-between">
-                    <span>{si.product.name} ({si.quantitySold} Stück)</span>
-                    <span>{centsToEuro(si.totalAmountCt)}</span>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          )}
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
