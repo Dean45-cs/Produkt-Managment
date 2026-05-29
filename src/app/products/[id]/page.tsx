@@ -166,7 +166,7 @@ export default function ProductDetailPage() {
                 <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
                 <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
                 <Legend />
-                <Line type="monotone" dataKey="Ø-Preis" stroke="#8b5cf6" strokeWidth={2} dot />
+                <Line type="monotone" dataKey="Ø-Preis" stroke="#e11d48" strokeWidth={2} dot />
                 <Line type="monotone" dataKey="Gewinn" stroke="#34d399" strokeWidth={2} dot />
               </LineChart>
             </ResponsiveContainer>

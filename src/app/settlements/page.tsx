@@ -64,7 +64,7 @@ export default function SettlementsPage() {
                     <TableCell>{formatDate(s.settledAt)}</TableCell>
                     <TableCell className="font-medium">{s.delivery.supplier.name}</TableCell>
                     <TableCell>{s.items.length} Pos. / {totalQty} Stück</TableCell>
-                    <TableCell className="font-medium text-blue-600">{centsToEuro(s.totalAmountCt)}</TableCell>
+                    <TableCell className="font-medium text-rose-600">{centsToEuro(s.totalAmountCt)}</TableCell>
                     <TableCell>{centsToEuro(totalCost)}</TableCell>
                     <TableCell className={profit >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                       {centsToEuro(profit)}

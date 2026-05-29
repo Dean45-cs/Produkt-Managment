@@ -56,9 +56,9 @@ function KpiCard({
   variant?: 'default' | 'warning' | 'success' | 'danger'
 }) {
   const colors = {
-    default: 'text-blue-600',
-    warning: 'text-yellow-600',
-    success: 'text-green-600',
+    default: 'text-rose-600',
+    warning: 'text-amber-600',
+    success: 'text-emerald-600',
     danger: 'text-red-600',
   }
   return (
@@ -175,9 +175,9 @@ export default function DashboardPage() {
                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
                     <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
                     <Legend />
-                    <Bar dataKey="Umsatz" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="Kosten" fill="#f87171" radius={[2, 2, 0, 0]} />
-                    <Bar dataKey="Gewinn" fill="#34d399" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Umsatz" fill="#e11d48" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Kosten" fill="#71717a" radius={[2, 2, 0, 0]} />
+                    <Bar dataKey="Gewinn" fill="#10b981" radius={[2, 2, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -243,7 +243,7 @@ export default function DashboardPage() {
                 {data.topProducts.map((p, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-xs flex items-center justify-center font-bold">{i + 1}</span>
+                      <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 text-xs flex items-center justify-center font-bold">{i + 1}</span>
                       <span>{p.name}</span>
                     </div>
                     <div className="text-right">

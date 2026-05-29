@@ -42,7 +42,7 @@ export default function SettlementDetailPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card><CardContent className="pt-4">
           <p className="text-xs text-muted-foreground">Umsatz</p>
-          <p className="text-xl font-bold text-blue-600">{centsToEuro(settlement.totalAmountCt)}</p>
+          <p className="text-xl font-bold text-rose-600">{centsToEuro(settlement.totalAmountCt)}</p>
         </CardContent></Card>
         <Card><CardContent className="pt-4">
           <p className="text-xs text-muted-foreground">Kosten (EK)</p>

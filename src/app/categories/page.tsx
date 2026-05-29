@@ -25,7 +25,7 @@ function CategoryForm({ defaultValues, onSubmit, isLoading }: {
 }) {
   const [name, setName] = useState(defaultValues?.name || '')
   const [description, setDescription] = useState(defaultValues?.description || '')
-  const [color, setColor] = useState(defaultValues?.color || '#3b82f6')
+  const [color, setColor] = useState(defaultValues?.color || '#e11d48')
 
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit({ name, description, color }) }} className="space-y-4">

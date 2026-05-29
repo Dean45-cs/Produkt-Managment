@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="de">
       <body className="antialiased">
         <QueryProvider>
-          <div className="flex min-h-screen bg-gray-50">
+          <div className="flex min-h-screen bg-neutral-50">
             <Sidebar />
             <main className="flex-1 p-6 overflow-auto">{children}</main>
           </div>

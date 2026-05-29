@@ -70,7 +70,7 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <Card><CardContent className="pt-4">
           <p className="text-xs text-muted-foreground">Gesamtumsatz</p>
-          <p className="text-xl font-bold text-blue-600">{centsToEuro(totalRevenue)}</p>
+          <p className="text-xl font-bold text-rose-600">{centsToEuro(totalRevenue)}</p>
         </CardContent></Card>
         <Card><CardContent className="pt-4">
           <p className="text-xs text-muted-foreground">Gesamtgewinn</p>
@@ -102,8 +102,8 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
                   <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
                   <Legend />
-                  <Bar dataKey="Umsatz" fill="#3b82f6" radius={[2, 2, 0, 0]} />
-                  <Bar dataKey="Gewinn" fill="#34d399" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="Umsatz" fill="#e11d48" radius={[2, 2, 0, 0]} />
+                  <Bar dataKey="Gewinn" fill="#10b981" radius={[2, 2, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             )}
@@ -130,7 +130,7 @@ export default function AnalyticsPage() {
                   <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
                   <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
                   <Legend />
-                  <Line type="monotone" dataKey="Historisch" stroke="#3b82f6" strokeWidth={2} dot={true} />
+                  <Line type="monotone" dataKey="Historisch" stroke="#e11d48" strokeWidth={2} dot={true} />
                   <Line type="monotone" dataKey="Forecast" stroke="#f59e0b" strokeWidth={2} strokeDasharray="5 5" dot={true} />
                 </LineChart>
               </ResponsiveContainer>
@@ -197,7 +197,7 @@ export default function AnalyticsPage() {
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
                   <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
                   <Legend />
-                  <Bar dataKey="Ø-Preis" fill="#8b5cf6" radius={[0, 2, 2, 0]} />
+                  <Bar dataKey="Ø-Preis" fill="#e11d48" radius={[0, 2, 2, 0]} />
                 </BarChart>
               </ResponsiveContainer>
 
@@ -217,7 +217,7 @@ export default function AnalyticsPage() {
                       <tr key={s.supplierId} className="border-b hover:bg-gray-50">
                         <td className="py-2 px-2 font-medium">{s.name}</td>
                         <td className="py-2 px-2 text-right">{centsToEuro(s.revenue)}</td>
-                        <td className="py-2 px-2 text-right font-medium text-purple-700">{centsToEuro(s.avgPriceCt)}</td>
+                        <td className="py-2 px-2 text-right font-medium text-rose-700">{centsToEuro(s.avgPriceCt)}</td>
                         <td className={`py-2 px-2 text-right ${s.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                           {centsToEuro(s.profit)}
                         </td>
