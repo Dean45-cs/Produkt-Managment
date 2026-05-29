@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Package,
@@ -15,6 +15,7 @@ import {
   BarChart3,
   RotateCcw,
   Users,
+  Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -35,6 +36,12 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  async function handleLock() {
+    await fetch('/api/auth/lock', { method: 'POST' }).catch(() => {})
+    router.replace('/unlock')
+  }
 
   return (
     <aside className="w-60 min-h-screen bg-neutral-950 text-white flex flex-col flex-shrink-0 border-r border-neutral-800">
@@ -66,8 +73,15 @@ export function Sidebar() {
           )
         })}
       </nav>
-      <div className="p-4 border-t border-neutral-800">
-        <p className="text-[10px] text-neutral-600">© {new Date().getFullYear()} Produkt Manager</p>
+      <div className="p-2 border-t border-neutral-800">
+        <button
+          onClick={handleLock}
+          className="group flex w-full items-center gap-3 px-3 py-2 rounded-md text-sm text-neutral-400 hover:bg-neutral-800 hover:text-white transition-colors"
+        >
+          <Lock className="h-4 w-4 flex-shrink-0 text-neutral-500 group-hover:text-rose-500" />
+          Sperren
+        </button>
+        <p className="text-[10px] text-neutral-600 px-3 pt-2">© {new Date().getFullYear()} Produkt Manager</p>
       </div>
     </aside>
   )

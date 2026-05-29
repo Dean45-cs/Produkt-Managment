@@ -1,15 +1,25 @@
-import { PrismaClient } from '../generated/prisma/client'
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
-import path from 'path'
+import type { PrismaClient } from '../generated/prisma/client'
+import { getPrismaOrNull } from './vault'
 
-const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
-
-function createPrismaClient(): PrismaClient {
-  const dbUrl = `file:${path.resolve(process.cwd(), 'dev.db')}`
-  const adapter = new PrismaBetterSqlite3({ url: dbUrl } as never)
-  return new PrismaClient({ adapter } as never)
+/** Wird geworfen, wenn auf die DB zugegriffen wird, ohne dass sie entsperrt ist. */
+export class DatabaseLockedError extends Error {
+  constructor() {
+    super('Datenbank ist gesperrt – bitte zuerst mit dem Master-Passwort entsperren.')
+    this.name = 'DatabaseLockedError'
+  }
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
+/**
+ * Lazy-Proxy auf die entsperrte Prisma-Instanz im Tresor.
+ * So funktioniert `import { prisma } from '@/lib/prisma'` in allen API-Routen
+ * unverändert weiter – solange die DB entsperrt ist. Andernfalls wird ein
+ * DatabaseLockedError geworfen.
+ */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop) {
+    const client = getPrismaOrNull()
+    if (!client) throw new DatabaseLockedError()
+    const value = Reflect.get(client as object, prop)
+    return typeof value === 'function' ? value.bind(client) : value
+  },
+})

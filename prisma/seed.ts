@@ -1,9 +1,31 @@
 import { PrismaClient } from '../src/generated/prisma/client'
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3'
+import Database from 'better-sqlite3'
 import path from 'path'
+import { createEncryptedAdapterFactory, escapeKey } from '../src/lib/db-encryption'
+import { runMigrations } from '../src/lib/migrate'
 
-const adapter = new PrismaBetterSqlite3({ url: `file:${path.resolve(__dirname, '../dev.db')}` } as never)
-const prisma = new PrismaClient({ adapter } as never)
+const password = process.env.DB_MASTER_PASSWORD
+if (!password) {
+  console.error('Bitte das Master-Passwort setzen, z.B.:  DB_MASTER_PASSWORD=deinPasswort npm run db:seed')
+  process.exit(1)
+}
+
+const DB_PATH = path.resolve(__dirname, '../dev.db')
+const DB_URL = `file:${DB_PATH}`
+
+// Schema auf der verschlüsselten DB sicherstellen (Migrationen anwenden)
+const rawDb = new Database(DB_PATH)
+rawDb.pragma(`key='${escapeKey(password)}'`)
+try {
+  rawDb.prepare('SELECT count(*) FROM sqlite_master').get()
+} catch {
+  console.error('Falsches Passwort oder DB nicht entschlüsselbar.')
+  process.exit(1)
+}
+runMigrations(rawDb as never, path.resolve(__dirname, 'migrations'))
+rawDb.close()
+
+const prisma = new PrismaClient({ adapter: createEncryptedAdapterFactory(DB_URL, password) as never })
 
 async function main() {
   console.log('Seeding database...')

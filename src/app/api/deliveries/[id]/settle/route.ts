@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { deliveryProgress, nextDeliveryStatus, DELIVERY_STATUS } from '@/lib/delivery'
