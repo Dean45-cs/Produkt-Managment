@@ -11,6 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Trash2 } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface ReturnItem {
   productId: string
@@ -40,17 +42,16 @@ export default function NewReturnPage() {
   })
 
   const mutation = useMutation({
-    mutationFn: (data: { deliveryId?: string; returnDate: string; notes: string; items: ReturnItem[] }) =>
-      fetch('/api/returns', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then((r) => r.json()),
+    mutationFn: async (data: { deliveryId?: string; returnDate: string; notes: string; items: ReturnItem[] }) => {
+      const res = await apiFetch('/api/returns', jsonInit(data))
+      return res.json()
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['returns'] })
       qc.invalidateQueries({ queryKey: ['inventory'] })
       router.push('/returns')
     },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   function updateItem(idx: number, field: keyof ReturnItem, value: string | number) {

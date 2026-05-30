@@ -12,6 +12,8 @@ import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
 import { deliveryProgress, DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS } from '@/lib/delivery'
 import { PackageCheck, Truck, Eye } from 'lucide-react'
+import { apiFetch } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 export default function DeliveryDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -24,12 +26,16 @@ export default function DeliveryDetailPage() {
 
   const markDeliveredMutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/deliveries/${id}`, {
+      apiFetch(`/api/deliveries/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'DELIVERED' }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['delivery', id] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['delivery', id] })
+      toast('Lieferung als geliefert markiert', 'success')
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>

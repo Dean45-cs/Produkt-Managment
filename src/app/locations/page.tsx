@@ -12,6 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface Location {
   id: string
@@ -76,20 +78,21 @@ export default function LocationsPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<Location>) =>
-      fetch('/api/locations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['locations'] }); setDialogOpen(false) },
+    mutationFn: (data: Partial<Location>) => apiFetch('/api/locations', jsonInit(data)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['locations'] }); setDialogOpen(false); toast('Standort erstellt', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }: Location) =>
-      fetch(`/api/locations/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['locations'] }); setEditing(null) },
+    mutationFn: ({ id, ...data }: Location) => apiFetch(`/api/locations/${id}`, jsonInit(data, 'PUT')),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['locations'] }); setEditing(null); toast('Standort gespeichert', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetch(`/api/locations/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['locations'] }),
+    mutationFn: (id: string) => apiFetch(`/api/locations/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['locations'] }); toast('Standort gelöscht', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const typeLabel = (type: string) => LOCATION_TYPES.find((t) => t.value === type)?.label || type

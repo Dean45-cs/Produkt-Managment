@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import { AppShell } from '@/components/layout/AppShell'
 import { QueryProvider } from '@/components/providers/QueryProvider'
+import { Toaster } from '@/components/ui/Toaster'
 
 export const metadata: Metadata = {
   title: 'Produkt Manager',
@@ -14,6 +15,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="antialiased">
         <QueryProvider>
           <AppShell>{children}</AppShell>
+          <Toaster />
         </QueryProvider>
       </body>
     </html>

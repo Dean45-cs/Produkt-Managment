@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { centsToEuro } from '@/lib/money'
 import { ExportButton } from '@/components/ExportButton'
 import { Plus, Search, Pencil, Trash2, Eye, Package } from 'lucide-react'
+import { apiFetch } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface Product {
   id: string
@@ -43,8 +45,9 @@ export default function ProductsPage() {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetch(`/api/products/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
+    mutationFn: (id: string) => apiFetch(`/api/products/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['products'] }); toast('Produkt gelöscht', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   return (

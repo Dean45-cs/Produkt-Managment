@@ -4,22 +4,23 @@ import { useRouter } from 'next/navigation'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProductForm } from '@/components/forms/ProductForm'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 export default function NewProductPage() {
   const router = useRouter()
   const qc = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then((r) => r.json()),
+    mutationFn: async (data: Record<string, unknown>) => {
+      const res = await apiFetch('/api/products', jsonInit(data))
+      return res.json()
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['products'] })
       router.push('/products')
     },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   return (

@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { centsToDecimal, euroToCents } from '@/lib/money'
 import { Plus, Trash2, Wand2 } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface OrderItem {
   productId: string
@@ -36,16 +38,15 @@ export default function NewPurchaseOrderPage() {
   })
 
   const mutation = useMutation({
-    mutationFn: (data: { supplierId: string; notes: string; items: OrderItem[] }) =>
-      fetch('/api/purchase-orders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then((r) => r.json()),
+    mutationFn: async (data: { supplierId: string; notes: string; items: OrderItem[] }) => {
+      const res = await apiFetch('/api/purchase-orders', jsonInit(data))
+      return res.json()
+    },
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ['purchase-orders'] })
       router.push(`/purchase-orders/${d.id}`)
     },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)

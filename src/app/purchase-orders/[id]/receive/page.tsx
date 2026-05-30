@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 export default function ReceivePurchaseOrderPage() {
   const { id } = useParams<{ id: string }>()
@@ -29,22 +31,19 @@ export default function ReceivePurchaseOrderPage() {
 
   const mutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/purchase-orders/${id}/receive`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          locationId,
-          items: order.items.map((item: { id: string; quantityOrdered: number }) => ({
-            purchaseOrderItemId: item.id,
-            quantityReceived: quantities[item.id] || item.quantityOrdered,
-          })),
-        }),
-      }),
+      apiFetch(`/api/purchase-orders/${id}/receive`, jsonInit({
+        locationId,
+        items: order.items.map((item: { id: string; quantityOrdered: number }) => ({
+          purchaseOrderItemId: item.id,
+          quantityReceived: quantities[item.id] || item.quantityOrdered,
+        })),
+      })),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['purchase-order', id] })
       qc.invalidateQueries({ queryKey: ['inventory'] })
       router.push(`/purchase-orders/${id}`)
     },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>

@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface Supplier {
   id: string
@@ -74,20 +76,21 @@ export default function SuppliersPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<Supplier>) =>
-      fetch('/api/suppliers', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setDialogOpen(false) },
+    mutationFn: (data: Partial<Supplier>) => apiFetch('/api/suppliers', jsonInit(data)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setDialogOpen(false); toast('Lieferant erstellt', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }: Supplier) =>
-      fetch(`/api/suppliers/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setEditing(null) },
+    mutationFn: ({ id, ...data }: Supplier) => apiFetch(`/api/suppliers/${id}`, jsonInit(data, 'PUT')),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setEditing(null); toast('Lieferant gespeichert', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetch(`/api/suppliers/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['suppliers'] }),
+    mutationFn: (id: string) => apiFetch(`/api/suppliers/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); toast('Lieferant gelöscht', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   return (

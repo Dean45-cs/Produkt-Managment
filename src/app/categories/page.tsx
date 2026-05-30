@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface Category {
   id: string
@@ -60,20 +62,21 @@ export default function CategoriesPage() {
   })
 
   const createMutation = useMutation({
-    mutationFn: (data: Partial<Category>) =>
-      fetch('/api/categories', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); setDialogOpen(false) },
+    mutationFn: (data: Partial<Category>) => apiFetch('/api/categories', jsonInit(data)),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); setDialogOpen(false); toast('Kategorie erstellt', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, ...data }: Category) =>
-      fetch(`/api/categories/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); setEditingCategory(null) },
+    mutationFn: ({ id, ...data }: Category) => apiFetch(`/api/categories/${id}`, jsonInit(data, 'PUT')),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); setEditingCategory(null); toast('Kategorie gespeichert', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetch(`/api/categories/${id}`, { method: 'DELETE' }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['categories'] }),
+    mutationFn: (id: string) => apiFetch(`/api/categories/${id}`, { method: 'DELETE' }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['categories'] }); toast('Kategorie gelöscht', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   return (

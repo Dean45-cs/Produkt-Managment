@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { centsToEuro } from '@/lib/money'
 import { ExportButton } from '@/components/ExportButton'
 import { SlidersHorizontal } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface InventoryData {
   inventory: Array<{
@@ -38,13 +40,9 @@ function AdjustDialog({ productId, locationId, productName, locationName }: {
   const qc = useQueryClient()
 
   const mutation = useMutation({
-    mutationFn: () =>
-      fetch('/api/stock-adjustments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, locationId, delta: Number(delta), reason, note }),
-      }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['inventory'] }); setOpen(false); setDelta(0) },
+    mutationFn: () => apiFetch('/api/stock-adjustments', jsonInit({ productId, locationId, delta: Number(delta), reason, note })),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['inventory'] }); setOpen(false); setDelta(0); toast('Bestand korrigiert', 'success') },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   return (

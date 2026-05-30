@@ -4,6 +4,8 @@ import { useParams, useRouter } from 'next/navigation'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { ProductForm } from '@/components/forms/ProductForm'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>()
@@ -16,17 +18,16 @@ export default function EditProductPage() {
   })
 
   const mutation = useMutation({
-    mutationFn: (data: Record<string, unknown>) =>
-      fetch(`/api/products/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then((r) => r.json()),
+    mutationFn: async (data: Record<string, unknown>) => {
+      const res = await apiFetch(`/api/products/${id}`, jsonInit(data, 'PUT'))
+      return res.json()
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['product', id] })
       qc.invalidateQueries({ queryKey: ['products'] })
       router.push(`/products/${id}`)
     },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>

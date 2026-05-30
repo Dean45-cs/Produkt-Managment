@@ -11,6 +11,8 @@ import { StarRating } from '@/components/ui/star-rating'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { formatDate } from '@/lib/utils'
 import { Plus, Trash2, MessageSquare } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface Review {
   id: string
@@ -27,17 +29,14 @@ function RatingForm({ productId, onDone }: { productId: string; onDone: () => vo
   const [comment, setComment] = useState('')
 
   const createMutation = useMutation({
-    mutationFn: () =>
-      fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId, rating, customerName, comment }),
-      }),
+    mutationFn: () => apiFetch('/api/reviews', jsonInit({ productId, rating, customerName, comment })),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reviews', productId] })
       qc.invalidateQueries({ queryKey: ['product', productId] })
       onDone()
+      toast('Bewertung gespeichert', 'success')
     },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   return (
@@ -78,11 +77,13 @@ export function ProductReviews({ productId }: { productId: string }) {
   })
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => fetch(`/api/reviews/${id}`, { method: 'DELETE' }),
+    mutationFn: (id: string) => apiFetch(`/api/reviews/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['reviews', productId] })
       qc.invalidateQueries({ queryKey: ['product', productId] })
+      toast('Bewertung gelöscht', 'success')
     },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const count = reviews.length

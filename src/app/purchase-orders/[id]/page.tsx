@@ -11,6 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
 import { PackageCheck } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Entwurf',
@@ -32,12 +34,12 @@ export default function PurchaseOrderDetailPage() {
 
   const markOrderedMutation = useMutation({
     mutationFn: () =>
-      fetch(`/api/purchase-orders/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'ORDERED', orderedAt: new Date().toISOString() }),
-      }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['purchase-order', id] }),
+      apiFetch(`/api/purchase-orders/${id}`, jsonInit({ status: 'ORDERED', orderedAt: new Date().toISOString() }, 'PUT')),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['purchase-order', id] })
+      toast('Als bestellt markiert', 'success')
+    },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>

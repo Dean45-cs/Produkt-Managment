@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { centsToDecimal, euroToCents } from '@/lib/money'
 import { Plus, Trash2 } from 'lucide-react'
+import { apiFetch, jsonInit } from '@/lib/api'
+import { toast } from '@/lib/toast'
 
 interface DeliveryItem {
   productId: string
@@ -42,16 +44,15 @@ export default function NewDeliveryPage() {
   })
 
   const mutation = useMutation({
-    mutationFn: (data: { supplierId: string; notes: string; items: DeliveryItem[] }) =>
-      fetch('/api/deliveries', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      }).then((r) => r.json()),
+    mutationFn: async (data: { supplierId: string; notes: string; items: DeliveryItem[] }) => {
+      const res = await apiFetch('/api/deliveries', jsonInit(data))
+      return res.json()
+    },
     onSuccess: (d) => {
       qc.invalidateQueries({ queryKey: ['deliveries'] })
       router.push(`/deliveries/${d.id}`)
     },
+    onError: (err: Error) => toast(err.message, 'error'),
   })
 
   function updateItem(idx: number, field: keyof DeliveryItem, value: string | number) {

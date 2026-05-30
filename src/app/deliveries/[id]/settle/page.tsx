@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { centsToEuro, euroToCents } from '@/lib/money'
 import { deliveryProgress } from '@/lib/delivery'
+import { toast } from '@/lib/toast'
 
 interface SettlementItemInput {
   productId: string
@@ -74,7 +75,7 @@ export default function SettlePage() {
       qc.invalidateQueries({ queryKey: ['settlements'] })
       router.push(`/deliveries/${id}`)
     },
-    onError: (e: Error) => setError(e.message),
+    onError: (e: Error) => { setError(e.message); toast(e.message, 'error') },
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>
