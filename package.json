@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "db:seed": "tsx prisma/seed.ts",
+    "db:clear": "tsx scripts/clear-db.ts",
     "db:encrypt": "tsx scripts/encrypt-db.ts"
   },
   "prisma": {
