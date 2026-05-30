@@ -20,6 +20,11 @@ export async function POST(req: Request) {
 
   if (!items?.length) return NextResponse.json({ error: 'Items required' }, { status: 400 })
 
+  const typedItems = items as { productId: string; locationId: string; quantityReturned: number }[]
+  if (typedItems.some((i) => !Number.isInteger(i.quantityReturned) || i.quantityReturned <= 0)) {
+    return NextResponse.json({ error: 'quantityReturned muss eine positive ganze Zahl sein' }, { status: 400 })
+  }
+
   const ret = await prisma.$transaction(async (tx) => {
     const r = await tx.return.create({
       data: {
@@ -37,7 +42,7 @@ export async function POST(req: Request) {
       include: { items: { include: { product: true, location: true } } },
     })
 
-    for (const item of items as { productId: string; locationId: string; quantityReturned: number }[]) {
+    for (const item of typedItems) {
       await tx.stockAdjustment.create({
         data: {
           productId: item.productId,

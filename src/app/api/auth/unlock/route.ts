@@ -18,6 +18,9 @@ export async function POST(req: Request) {
 
   const result = await unlock(password)
   if (!result.ok) {
+    if (result.error === 'RATE_LIMITED') {
+      return NextResponse.json({ error: 'Zu viele Fehlversuche – bitte 60 Sekunden warten' }, { status: 429 })
+    }
     const msg = result.error === 'WRONG_PASSWORD' ? 'Falsches Passwort' : 'Datenbank konnte nicht entsperrt werden'
     return NextResponse.json({ error: msg }, { status: 401 })
   }

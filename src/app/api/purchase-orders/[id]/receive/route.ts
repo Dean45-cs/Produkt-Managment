@@ -11,10 +11,16 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'items and locationId required' }, { status: 400 })
   }
 
+  const typedItems = items as { purchaseOrderItemId: string; quantityReceived: number }[]
+  if (typedItems.some((i) => !Number.isInteger(i.quantityReceived) || i.quantityReceived <= 0)) {
+    return NextResponse.json({ error: 'quantityReceived muss eine positive ganze Zahl sein' }, { status: 400 })
+  }
+
   await prisma.$transaction(async (tx) => {
-    for (const item of items as { purchaseOrderItemId: string; quantityReceived: number }[]) {
+    for (const item of typedItems) {
+      // purchaseOrderId-Prüfung verhindert, dass fremde Bestellpositionen verändert werden.
       const poi = await tx.purchaseOrderItem.update({
-        where: { id: item.purchaseOrderItemId },
+        where: { id: item.purchaseOrderItemId, purchaseOrderId: id },
         data: { quantityReceived: { increment: item.quantityReceived } },
       })
 

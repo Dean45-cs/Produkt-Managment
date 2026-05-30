@@ -28,6 +28,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   })
   if (!delivery) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
+  // Erlaubte Statusübergänge – verhindert Rückwärtswechsel, die den Lagerbestand korrumpieren.
+  if (status !== undefined && status !== delivery.status) {
+    const ALLOWED: Record<string, string[]> = {
+      PENDING: ['DELIVERED', 'CANCELLED'],
+      DELIVERED: ['CANCELLED'],
+      PARTIALLY_SETTLED: ['CANCELLED'],
+      SETTLED: [],
+      CANCELLED: [],
+    }
+    const allowed = ALLOWED[delivery.status] ?? []
+    if (!allowed.includes(status)) {
+      return NextResponse.json(
+        { error: `Ungültiger Statuswechsel: ${delivery.status} → ${status}` },
+        { status: 400 }
+      )
+    }
+  }
+
   // When marking as DELIVERED: deduct stock
   if (status === 'DELIVERED' && delivery.status === 'PENDING') {
     await prisma.$transaction([

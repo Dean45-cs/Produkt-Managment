@@ -46,11 +46,19 @@ export function dbFileExists(): boolean {
 export interface UnlockResult {
   ok: boolean
   firstRun: boolean
-  error?: 'WRONG_PASSWORD' | 'INIT_FAILED'
+  error?: 'WRONG_PASSWORD' | 'INIT_FAILED' | 'RATE_LIMITED'
 }
+
+// Schutz vor Brute-Force: nach 5 Fehlversuchen 60 Sekunden Sperre.
+let failedAttempts = 0
+let lockedUntilMs = 0
 
 export async function unlock(password: string): Promise<UnlockResult> {
   const firstRun = !dbFileExists()
+
+  if (Date.now() < lockedUntilMs) {
+    return { ok: false, firstRun, error: 'RATE_LIMITED' }
+  }
 
   // 1) Rohe, verschlüsselte Verbindung: Passwort prüfen + Migrationen anwenden.
   //    (Bei falschem Passwort wirft bereits die erste Query → "file is not a database".)
@@ -61,6 +69,11 @@ export async function unlock(password: string): Promise<UnlockResult> {
     raw.prepare('SELECT count(*) FROM sqlite_master').get()
   } catch {
     try { raw?.close() } catch { /* ignore */ }
+    failedAttempts++
+    if (failedAttempts >= 5) {
+      lockedUntilMs = Date.now() + 60_000
+      failedAttempts = 0
+    }
     return { ok: false, firstRun, error: 'WRONG_PASSWORD' }
   }
   try {
@@ -82,6 +95,8 @@ export async function unlock(password: string): Promise<UnlockResult> {
 
   vault.prisma = prisma
   vault.sessionToken = crypto.randomBytes(32).toString('hex')
+  failedAttempts = 0
+  lockedUntilMs = 0
   return { ok: true, firstRun }
 }
 

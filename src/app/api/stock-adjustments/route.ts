@@ -18,6 +18,9 @@ export async function POST(req: Request) {
   if (!productId || !locationId || delta === undefined) {
     return NextResponse.json({ error: 'productId, locationId, delta required' }, { status: 400 })
   }
+  if (!Number.isInteger(delta) || delta === 0) {
+    return NextResponse.json({ error: 'delta muss eine ganze Zahl ungleich 0 sein' }, { status: 400 })
+  }
 
   const [adjustment] = await prisma.$transaction([
     prisma.stockAdjustment.create({

@@ -21,8 +21,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'Datei zu groß (max. 5 MB)' }, { status: 400 })
   }
 
+  const MIME_EXT: Record<string, string> = {
+    'image/jpeg': 'jpg',
+    'image/png': 'png',
+    'image/webp': 'webp',
+    'image/gif': 'gif',
+  }
   const buffer = Buffer.from(await file.arrayBuffer())
-  const ext = file.name.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
+  const ext = MIME_EXT[file.type] ?? 'jpg'
   const filename = `${Date.now()}-${randomBytes(6).toString('hex')}.${ext}`
 
   const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'products')

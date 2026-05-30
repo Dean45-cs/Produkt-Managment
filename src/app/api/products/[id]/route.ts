@@ -26,9 +26,12 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   const { id } = await params
   const body = await req.json()
   const { name, sku, description, imageUrl, categoryId, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
+  if (!name?.trim() || !sku?.trim()) {
+    return NextResponse.json({ error: 'Name and SKU required' }, { status: 400 })
+  }
   const product = await prisma.product.update({
     where: { id },
-    data: { name, sku, description, imageUrl: imageUrl || null, categoryId: categoryId || null, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty },
+    data: { name: name.trim(), sku: sku.trim(), description, imageUrl: imageUrl || null, categoryId: categoryId || null, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty },
     include: { category: true },
   })
   return NextResponse.json(product)

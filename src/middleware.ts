@@ -49,8 +49,9 @@ async function verifyCookie(value: string | undefined): Promise<boolean> {
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Öffentlich: Unlock-Seite + Auth-Endpunkte
-  if (pathname === '/unlock' || pathname.startsWith('/api/auth/')) {
+  // Öffentlich: Unlock-Seite + nur die nicht-schützenden Auth-Endpunkte.
+  // /api/auth/lock ist NICHT öffentlich – sonst könnte jeder die App sperren.
+  if (pathname === '/unlock' || pathname === '/api/auth/unlock' || pathname === '/api/auth/status') {
     return NextResponse.next()
   }
 
