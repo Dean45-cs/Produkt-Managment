@@ -10,10 +10,10 @@ import { StarRating } from '@/components/ui/star-rating'
 import { ExportButton } from '@/components/ExportButton'
 import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
-import { Trophy, Package } from 'lucide-react'
+import { Trophy, Package, AlertTriangle, Boxes } from 'lucide-react'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend, Cell,
+  ResponsiveContainer, Legend, Cell, PieChart, Pie, AreaChart, Area,
 } from 'recharts'
 
 interface RevenueData {
@@ -22,48 +22,47 @@ interface RevenueData {
 }
 
 interface SupplierStat {
-  supplierId: string
-  name: string
-  revenue: number
-  cost: number
-  profit: number
-  quantity: number
-  settlementCount: number
-  deliveryCount: number
-  productCount: number
-  avgPriceCt: number
-  marginPct: number
-  lastSettledAt: string | null
+  supplierId: string; name: string; revenue: number; cost: number; profit: number
+  quantity: number; settlementCount: number; deliveryCount: number; productCount: number
+  avgPriceCt: number; marginPct: number; lastSettledAt: string | null
 }
 
 interface ProductStat {
-  id: string
-  name: string
-  sku: string
-  imageUrl?: string | null
+  id: string; name: string; sku: string; imageUrl?: string | null
   category?: { name: string; color?: string | null } | null
-  purchasePriceCt: number
-  revenue: number
-  cost: number
-  profit: number
-  quantity: number
-  avgPriceCt: number
-  marginPct: number
-  stock: number
-  settlementCount: number
-  ratingAvg: number
-  ratingCount: number
-  lastSold: string | null
+  purchasePriceCt: number; revenue: number; cost: number; profit: number
+  quantity: number; avgPriceCt: number; marginPct: number; stock: number
+  settlementCount: number; ratingAvg: number; ratingCount: number; lastSold: string | null
 }
 
 interface Review {
-  id: string
-  rating: number
-  comment?: string | null
-  customerName?: string | null
-  createdAt: string
-  product: { id: string; name: string; sku: string }
+  id: string; rating: number; comment?: string | null; customerName?: string | null
+  createdAt: string; product: { id: string; name: string; sku: string }
 }
+
+interface Insights {
+  kpis: {
+    totalRevenueCt: number; totalCostCt: number; totalProfitCt: number; avgMarginPct: number
+    unitsSold: number; settlementCount: number; avgOrderValueCt: number; deliveryCount: number
+    unitsDelivered: number; sellThroughPct: number; returnUnits: number; returnRatePct: number
+    inventoryValueCt: number; inventoryUnits: number; openReceivablesCt: number; openUnits: number
+    deadStockValueCt: number; deadStockCount: number; reorderCount: number
+    momGrowthPct: number | null; activeProducts: number; soldProducts: number
+  }
+  bestMonth: { period: string; revenue: number } | null
+  worstMonth: { period: string; revenue: number } | null
+  monthly: Array<{ period: string; revenue: number; cost: number; profit: number; units: number; settlements: number; marginPct: number; cumRevenue: number; cumProfit: number }>
+  abc: Array<{ id: string; name: string; sku: string; categoryName: string | null; revenue: number; profit: number; units: number; marginPct: number; revenueSharePct: number; cumSharePct: number; class: string }>
+  abcSummary: Array<{ class: string; productCount: number; revenue: number; revenueSharePct: number }>
+  categories: Array<{ name: string; revenue: number; profit: number; units: number; marginPct: number }>
+  invByCategory: Array<{ name: string; value: number; units: number }>
+  invByLocation: Array<{ name: string; value: number; units: number }>
+  deadStock: Array<{ id: string; name: string; sku: string; stock: number; valueCt: number; lastSold: string | null; daysSinceSold: number | null }>
+  reorderList: Array<{ id: string; name: string; sku: string; stock: number; reorderPoint: number; reorderQty: number }>
+  marginBuckets: Array<{ label: string; count: number }>
+}
+
+const PIE_COLORS = ['#e11d48', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
 
 function KpiCard({ label, value, sub, accent }: { label: string; value: React.ReactNode; sub?: React.ReactNode; accent?: string }) {
   return (
@@ -74,6 +73,9 @@ function KpiCard({ label, value, sub, accent }: { label: string; value: React.Re
     </CardContent></Card>
   )
 }
+
+const euro = (ct: number) => centsToEuro(ct)
+const pct = (v: number | null | undefined) => (v == null ? '—' : `${v.toFixed(1)}%`)
 
 export default function AnalyticsPage() {
   const { data: revData, isLoading } = useQuery<RevenueData>({
@@ -92,10 +94,16 @@ export default function AnalyticsPage() {
     queryKey: ['analytics-reviews'],
     queryFn: () => fetch('/api/reviews').then((r) => r.json()),
   })
+  const { data: insights } = useQuery<Insights>({
+    queryKey: ['analytics-insights'],
+    queryFn: () => fetch('/api/analytics/insights').then((r) => r.json()),
+  })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>
 
-  // ---- Übersicht ----
+  const k = insights?.kpis
+
+  // ---- Übersicht-Charts ----
   const historyChart = revData?.history.map((h) => ({
     period: h.period, Umsatz: h.revenue / 100, Kosten: h.cost / 100, Gewinn: h.profit / 100,
   })) || []
@@ -103,6 +111,10 @@ export default function AnalyticsPage() {
     ...(revData?.history.slice(-3).map((h) => ({ period: h.period, Historisch: h.revenue / 100 })) || []),
     ...(revData?.forecast.map((f) => ({ period: f.period, Forecast: f.revenue / 100 })) || []),
   ]
+  const cumulativeChart = insights?.monthly.map((m) => ({
+    period: m.period, 'Umsatz kumuliert': m.cumRevenue / 100, 'Gewinn kumuliert': m.cumProfit / 100,
+  })) || []
+
   const totalRevenue = revData?.history.reduce((s, h) => s + h.revenue, 0) || 0
   const totalProfit = revData?.history.reduce((s, h) => s + h.profit, 0) || 0
   const totalQty = revData?.history.reduce((s, h) => s + h.quantity, 0) || 0
@@ -115,7 +127,6 @@ export default function AnalyticsPage() {
   const topProfit = [...sold].sort((a, b) => b.profit - a.profit)[0]
   const rated = products.filter((p) => p.ratingCount > 0)
   const bestRated = [...rated].sort((a, b) => b.ratingAvg - a.ratingAvg)[0]
-
   const topRevenueChart = [...products].sort((a, b) => b.revenue - a.revenue).slice(0, 8)
     .map((p) => ({ name: p.name, Umsatz: p.revenue / 100, Gewinn: p.profit / 100 }))
 
@@ -123,35 +134,68 @@ export default function AnalyticsPage() {
   const totalReviews = reviews.length
   const overallAvg = totalReviews > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / totalReviews : 0
   const distribution = [5, 4, 3, 2, 1].map((star) => ({
-    star: `${star} ★`,
-    Anzahl: reviews.filter((r) => r.rating === star).length,
+    star: `${star} ★`, Anzahl: reviews.filter((r) => r.rating === star).length,
   }))
   const bestRatedList = [...rated].sort((a, b) => b.ratingAvg - a.ratingAvg).slice(0, 5)
   const worstRatedList = [...rated].sort((a, b) => a.ratingAvg - b.ratingAvg).slice(0, 5)
+
+  const abcColor: Record<string, string> = { A: 'text-green-700', B: 'text-amber-600', C: 'text-neutral-500' }
+  const abcBadge: Record<string, 'success' | 'warning' | 'secondary'> = { A: 'success', B: 'warning', C: 'secondary' }
 
   return (
     <div>
       <PageHeader
         title="Analyse & Forecast"
-        description="Umsatz, Produkte, Lieferanten und Kundenzufriedenheit im Detail"
+        description="Umsatz, Produkte, Lieferanten, Bestand und Kundenzufriedenheit im Detail"
       />
 
       <Tabs defaultValue="overview">
-        <TabsList className="mb-6">
+        <TabsList className="mb-6 flex-wrap">
           <TabsTrigger value="overview">Übersicht</TabsTrigger>
           <TabsTrigger value="products">Produkte</TabsTrigger>
+          <TabsTrigger value="inventory">Bestand</TabsTrigger>
           <TabsTrigger value="suppliers">Lieferanten</TabsTrigger>
           <TabsTrigger value="reviews">Bewertungen</TabsTrigger>
         </TabsList>
 
         {/* ===================== ÜBERSICHT ===================== */}
         <TabsContent value="overview">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-            <KpiCard label="Gesamtumsatz" value={centsToEuro(totalRevenue)} accent="text-rose-600" />
-            <KpiCard label="Gesamtgewinn" value={centsToEuro(totalProfit)} accent={totalProfit >= 0 ? 'text-green-600' : 'text-red-600'} />
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <KpiCard label="Gesamtumsatz" value={euro(totalRevenue)} accent="text-rose-600" />
+            <KpiCard label="Gesamtgewinn" value={euro(totalProfit)} accent={totalProfit >= 0 ? 'text-green-600' : 'text-red-600'} />
             <KpiCard label="Ø Marge" value={`${avgMargin.toFixed(1)}%`} />
-            <KpiCard label="Verkaufte Stück gesamt" value={totalQty} />
+            <KpiCard label="Verkaufte Stück" value={totalQty} />
           </div>
+
+          {k && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+              <KpiCard label="Ø Bestellwert" value={euro(k.avgOrderValueCt)} sub={`${k.settlementCount} Abrechnungen`} />
+              <KpiCard
+                label="Abverkaufsquote"
+                value={pct(k.sellThroughPct)}
+                sub={`${k.unitsSold} von ${k.unitsDelivered} geliefert`}
+              />
+              <KpiCard
+                label="Wachstum (MoM)"
+                value={k.momGrowthPct == null ? '—' : (
+                  <span className={k.momGrowthPct >= 0 ? 'text-green-600' : 'text-red-600'}>
+                    {k.momGrowthPct >= 0 ? '▲' : '▼'} {Math.abs(k.momGrowthPct).toFixed(1)}%
+                  </span>
+                )}
+                sub="ggü. Vormonat"
+              />
+              <KpiCard label="Offene Forderungen" value={euro(k.openReceivablesCt)} sub={`${k.openUnits} Stück unterwegs`} accent="text-amber-600" />
+            </div>
+          )}
+
+          {k && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <KpiCard label="Bestandswert" value={euro(k.inventoryValueCt)} sub={`${k.inventoryUnits} Stück`} />
+              <KpiCard label="Retourenquote" value={pct(k.returnRatePct)} sub={`${k.returnUnits} retourniert`} />
+              <KpiCard label="Bester Monat" value={insights?.bestMonth?.period || '—'} sub={insights?.bestMonth ? euro(insights.bestMonth.revenue) : undefined} accent="text-green-700 text-base" />
+              <KpiCard label="Schwächster Monat" value={insights?.worstMonth?.period || '—'} sub={insights?.worstMonth ? euro(insights.worstMonth.revenue) : undefined} accent="text-base" />
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             <Card>
@@ -202,10 +246,52 @@ export default function AnalyticsPage() {
             </Card>
           </div>
 
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <Card>
+              <CardHeader><CardTitle>Kumulierter Umsatz & Gewinn</CardTitle></CardHeader>
+              <CardContent>
+                {cumulativeChart.length === 0 ? (
+                  <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">Noch keine Daten</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart data={cumulativeChart}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="period" tick={{ fontSize: 11 }} />
+                      <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                      <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                      <Legend />
+                      <Area type="monotone" dataKey="Umsatz kumuliert" stroke="#e11d48" fill="#fecdd3" strokeWidth={2} />
+                      <Area type="monotone" dataKey="Gewinn kumuliert" stroke="#10b981" fill="#bbf7d0" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Margenverteilung der Produkte</CardTitle></CardHeader>
+              <CardContent>
+                {!insights || insights.marginBuckets.every((b) => b.count === 0) ? (
+                  <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">Noch keine Verkaufsdaten</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={insights.marginBuckets}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="label" tick={{ fontSize: 11 }} />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} />
+                      <Tooltip />
+                      <Bar dataKey="count" name="Produkte" fill="#8b5cf6" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
           <Card>
             <CardHeader><CardTitle>Monatsdetails</CardTitle></CardHeader>
             <CardContent>
-              {revData?.history.length === 0 ? (
+              {(insights?.monthly.length ?? 0) === 0 ? (
                 <p className="text-sm text-muted-foreground">Noch keine Daten</p>
               ) : (
                 <div className="overflow-x-auto">
@@ -218,22 +304,23 @@ export default function AnalyticsPage() {
                         <th className="text-right py-2 px-2">Gewinn</th>
                         <th className="text-right py-2 px-2">Marge</th>
                         <th className="text-right py-2 px-2">Stück</th>
+                        <th className="text-right py-2 px-2">Abr.</th>
+                        <th className="text-right py-2 px-2">Umsatz kum.</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {revData?.history.map((h) => {
-                        const margin = h.revenue > 0 ? (h.profit / h.revenue) * 100 : 0
-                        return (
-                          <tr key={h.period} className="border-b hover:bg-neutral-50">
-                            <td className="py-2 px-2 font-medium">{h.period}</td>
-                            <td className="py-2 px-2 text-right">{centsToEuro(h.revenue)}</td>
-                            <td className="py-2 px-2 text-right">{centsToEuro(h.cost)}</td>
-                            <td className={`py-2 px-2 text-right font-medium ${h.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{centsToEuro(h.profit)}</td>
-                            <td className="py-2 px-2 text-right">{margin.toFixed(1)}%</td>
-                            <td className="py-2 px-2 text-right">{h.quantity}</td>
-                          </tr>
-                        )
-                      })}
+                      {insights?.monthly.map((h) => (
+                        <tr key={h.period} className="border-b hover:bg-neutral-50">
+                          <td className="py-2 px-2 font-medium">{h.period}</td>
+                          <td className="py-2 px-2 text-right">{euro(h.revenue)}</td>
+                          <td className="py-2 px-2 text-right">{euro(h.cost)}</td>
+                          <td className={`py-2 px-2 text-right font-medium ${h.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{euro(h.profit)}</td>
+                          <td className="py-2 px-2 text-right">{h.marginPct.toFixed(1)}%</td>
+                          <td className="py-2 px-2 text-right">{h.units}</td>
+                          <td className="py-2 px-2 text-right">{h.settlements}</td>
+                          <td className="py-2 px-2 text-right text-muted-foreground">{euro(h.cumRevenue)}</td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -246,10 +333,109 @@ export default function AnalyticsPage() {
         <TabsContent value="products">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             <KpiCard label="🏆 Bestseller (Menge)" value={bestSeller?.name || '—'} sub={bestSeller ? `${bestSeller.quantity} Stück` : undefined} accent="text-base" />
-            <KpiCard label="💰 Umsatz-König" value={topRevenue?.name || '—'} sub={topRevenue ? centsToEuro(topRevenue.revenue) : undefined} accent="text-base" />
-            <KpiCard label="📈 Gewinn-König" value={topProfit?.name || '—'} sub={topProfit ? centsToEuro(topProfit.profit) : undefined} accent="text-base" />
+            <KpiCard label="💰 Umsatz-König" value={topRevenue?.name || '—'} sub={topRevenue ? euro(topRevenue.revenue) : undefined} accent="text-base" />
+            <KpiCard label="📈 Gewinn-König" value={topProfit?.name || '—'} sub={topProfit ? euro(topProfit.profit) : undefined} accent="text-base" />
             <KpiCard label="⭐ Bestbewertet" value={bestRated?.name || '—'} sub={bestRated ? `${bestRated.ratingAvg.toFixed(1)} ★ (${bestRated.ratingCount})` : undefined} accent="text-base" />
           </div>
+
+          {/* ABC-Analyse */}
+          {insights && insights.abc.length > 0 && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>ABC-Analyse (Pareto)</CardTitle>
+                <p className="text-sm text-muted-foreground">Welche Produkte tragen den Großteil des Umsatzes? A = Top 80 %, B = bis 95 %, C = Rest.</p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-3 gap-3 mb-4">
+                  {insights.abcSummary.map((s) => (
+                    <div key={s.class} className="rounded-lg border p-3 text-center">
+                      <p className={`text-2xl font-bold ${abcColor[s.class]}`}>{s.class}</p>
+                      <p className="text-xs text-muted-foreground">{s.productCount} Produkte</p>
+                      <p className="text-sm font-medium mt-1">{euro(s.revenue)}</p>
+                      <p className="text-xs text-muted-foreground">{s.revenueSharePct.toFixed(0)}% vom Umsatz</p>
+                    </div>
+                  ))}
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-2">Klasse</th>
+                        <th className="text-left py-2 px-2">Produkt</th>
+                        <th className="text-right py-2 px-2">Umsatz</th>
+                        <th className="text-right py-2 px-2">Anteil</th>
+                        <th className="text-right py-2 px-2">Kumuliert</th>
+                        <th className="text-right py-2 px-2">Marge</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {insights.abc.slice(0, 20).map((p) => (
+                        <tr key={p.id} className="border-b hover:bg-neutral-50">
+                          <td className="py-2 px-2"><Badge variant={abcBadge[p.class]}>{p.class}</Badge></td>
+                          <td className="py-2 px-2 font-medium"><Link href={`/products/${p.id}`} className="text-rose-600 hover:underline">{p.name}</Link></td>
+                          <td className="py-2 px-2 text-right">{euro(p.revenue)}</td>
+                          <td className="py-2 px-2 text-right">{p.revenueSharePct.toFixed(1)}%</td>
+                          <td className="py-2 px-2 text-right text-muted-foreground">{p.cumSharePct.toFixed(1)}%</td>
+                          <td className="py-2 px-2 text-right">{p.marginPct.toFixed(1)}%</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Kategorie-Performance */}
+          {insights && insights.categories.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+              <Card>
+                <CardHeader><CardTitle>Umsatz je Kategorie</CardTitle></CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={Math.max(200, insights.categories.length * 42)}>
+                    <BarChart data={insights.categories.map((c) => ({ name: c.name, Umsatz: c.revenue / 100, Gewinn: c.profit / 100 }))} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                      <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                      <Legend />
+                      <Bar dataKey="Umsatz" fill="#e11d48" radius={[0, 2, 2, 0]} />
+                      <Bar dataKey="Gewinn" fill="#10b981" radius={[0, 2, 2, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader><CardTitle>Kategorien im Detail</CardTitle></CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-2">Kategorie</th>
+                          <th className="text-right py-2 px-2">Umsatz</th>
+                          <th className="text-right py-2 px-2">Gewinn</th>
+                          <th className="text-right py-2 px-2">Marge</th>
+                          <th className="text-right py-2 px-2">Stück</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {insights.categories.map((c) => (
+                          <tr key={c.name} className="border-b hover:bg-neutral-50">
+                            <td className="py-2 px-2 font-medium">{c.name}</td>
+                            <td className="py-2 px-2 text-right">{euro(c.revenue)}</td>
+                            <td className={`py-2 px-2 text-right ${c.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{euro(c.profit)}</td>
+                            <td className="py-2 px-2 text-right">{c.marginPct.toFixed(1)}%</td>
+                            <td className="py-2 px-2 text-right">{c.units}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
           <Card className="mb-6">
             <CardHeader><CardTitle>Top 8 Produkte nach Umsatz & Gewinn</CardTitle></CardHeader>
@@ -315,9 +501,9 @@ export default function AnalyticsPage() {
                           <td className="py-2 px-2">{p.category?.name || '—'}</td>
                           <td className="py-2 px-2 text-right">{p.stock}</td>
                           <td className="py-2 px-2 text-right">{p.quantity}</td>
-                          <td className="py-2 px-2 text-right">{p.avgPriceCt > 0 ? centsToEuro(p.avgPriceCt) : '—'}</td>
-                          <td className="py-2 px-2 text-right font-medium">{centsToEuro(p.revenue)}</td>
-                          <td className={`py-2 px-2 text-right ${p.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{centsToEuro(p.profit)}</td>
+                          <td className="py-2 px-2 text-right">{p.avgPriceCt > 0 ? euro(p.avgPriceCt) : '—'}</td>
+                          <td className="py-2 px-2 text-right font-medium">{euro(p.revenue)}</td>
+                          <td className={`py-2 px-2 text-right ${p.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{euro(p.profit)}</td>
                           <td className="py-2 px-2 text-right">{p.revenue > 0 ? `${p.marginPct.toFixed(1)}%` : '—'}</td>
                           <td className="py-2 px-2">
                             {p.ratingCount > 0 ? (
@@ -335,6 +521,135 @@ export default function AnalyticsPage() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* ===================== BESTAND ===================== */}
+        <TabsContent value="inventory">
+          {k && (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <KpiCard label="Bestandswert (EK)" value={euro(k.inventoryValueCt)} sub={`${k.inventoryUnits} Stück`} accent="text-rose-600" />
+              <KpiCard label="Ladenhüter-Wert" value={euro(k.deadStockValueCt)} sub={`${k.deadStockCount} Produkte > 90 Tage`} accent="text-amber-600" />
+              <KpiCard label="Nachbestellen" value={k.reorderCount} sub="unter Meldebestand" accent={k.reorderCount > 0 ? 'text-red-600' : ''} />
+              <KpiCard label="Ware unterwegs" value={euro(k.openReceivablesCt)} sub={`${k.openUnits} Stück offen`} />
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <Card>
+              <CardHeader><CardTitle>Bestandswert je Kategorie</CardTitle></CardHeader>
+              <CardContent>
+                {!insights || insights.invByCategory.length === 0 ? (
+                  <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">Kein Bestand vorhanden</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={280}>
+                    <PieChart>
+                      <Pie
+                        data={insights.invByCategory.map((c) => ({ name: c.name, value: c.value / 100 }))}
+                        dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100}
+                        label={(e) => `${e.name}`}
+                      >
+                        {insights.invByCategory.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      </Pie>
+                      <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader><CardTitle>Bestandswert je Standort</CardTitle></CardHeader>
+              <CardContent>
+                {!insights || insights.invByLocation.length === 0 ? (
+                  <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">Kein Bestand vorhanden</div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={Math.max(200, insights.invByLocation.length * 48)}>
+                    <BarChart data={insights.invByLocation.map((l) => ({ name: l.name, Wert: l.value / 100 }))} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                      <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                      <Bar dataKey="Wert" fill="#3b82f6" radius={[0, 2, 2, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-red-600" /> Nachbestellen</CardTitle>
+                <p className="text-sm text-muted-foreground">Produkte auf oder unter dem Meldebestand</p>
+              </CardHeader>
+              <CardContent>
+                {!insights || insights.reorderList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Alles ausreichend bevorratet 👍</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-2">Produkt</th>
+                          <th className="text-right py-2 px-2">Bestand</th>
+                          <th className="text-right py-2 px-2">Meldebestand</th>
+                          <th className="text-right py-2 px-2">Vorschlag</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {insights.reorderList.map((p) => (
+                          <tr key={p.id} className="border-b hover:bg-neutral-50">
+                            <td className="py-2 px-2 font-medium"><Link href={`/products/${p.id}`} className="text-rose-600 hover:underline">{p.name}</Link></td>
+                            <td className="py-2 px-2 text-right text-red-600 font-medium">{p.stock}</td>
+                            <td className="py-2 px-2 text-right">{p.reorderPoint}</td>
+                            <td className="py-2 px-2 text-right">{p.reorderQty > 0 ? `+${p.reorderQty}` : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2"><Boxes className="h-4 w-4 text-amber-600" /> Ladenhüter</CardTitle>
+                <p className="text-sm text-muted-foreground">Bestand, aber seit über 90 Tagen nicht verkauft</p>
+              </CardHeader>
+              <CardContent>
+                {!insights || insights.deadStock.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Keine Ladenhüter 👍</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-2 px-2">Produkt</th>
+                          <th className="text-right py-2 px-2">Bestand</th>
+                          <th className="text-right py-2 px-2">Wert</th>
+                          <th className="text-right py-2 px-2">Zuletzt verkauft</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {insights.deadStock.map((p) => (
+                          <tr key={p.id} className="border-b hover:bg-neutral-50">
+                            <td className="py-2 px-2 font-medium"><Link href={`/products/${p.id}`} className="text-rose-600 hover:underline">{p.name}</Link></td>
+                            <td className="py-2 px-2 text-right">{p.stock}</td>
+                            <td className="py-2 px-2 text-right">{euro(p.valueCt)}</td>
+                            <td className="py-2 px-2 text-right text-muted-foreground">
+                              {p.daysSinceSold == null ? 'Nie' : `vor ${p.daysSinceSold} T.`}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* ===================== LIEFERANTEN ===================== */}
@@ -384,10 +699,10 @@ export default function AnalyticsPage() {
                         {suppliers.map((s) => (
                           <tr key={s.supplierId} className="border-b hover:bg-neutral-50">
                             <td className="py-2 px-2 font-medium">{s.name}</td>
-                            <td className="py-2 px-2 text-right">{centsToEuro(s.revenue)}</td>
-                            <td className={`py-2 px-2 text-right ${s.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{centsToEuro(s.profit)}</td>
+                            <td className="py-2 px-2 text-right">{euro(s.revenue)}</td>
+                            <td className={`py-2 px-2 text-right ${s.profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>{euro(s.profit)}</td>
                             <td className="py-2 px-2 text-right">{s.marginPct.toFixed(1)}%</td>
-                            <td className="py-2 px-2 text-right font-medium text-rose-700">{centsToEuro(s.avgPriceCt)}</td>
+                            <td className="py-2 px-2 text-right font-medium text-rose-700">{euro(s.avgPriceCt)}</td>
                             <td className="py-2 px-2 text-right">{s.quantity}</td>
                             <td className="py-2 px-2 text-right">{s.productCount}</td>
                             <td className="py-2 px-2 text-right">{s.settlementCount}</td>
@@ -414,12 +729,7 @@ export default function AnalyticsPage() {
             </CardContent></Card>
             <KpiCard label="Bewertungen gesamt" value={totalReviews} />
             <KpiCard label="Bewertete Produkte" value={rated.length} sub={`von ${products.length}`} />
-            <KpiCard
-              label="Top-Produkt"
-              value={bestRated?.name || '—'}
-              sub={bestRated ? `${bestRated.ratingAvg.toFixed(1)} ★` : undefined}
-              accent="text-base"
-            />
+            <KpiCard label="Top-Produkt" value={bestRated?.name || '—'} sub={bestRated ? `${bestRated.ratingAvg.toFixed(1)} ★` : undefined} accent="text-base" />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
