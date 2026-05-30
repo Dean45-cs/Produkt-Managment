@@ -20,7 +20,10 @@ export async function GET() {
       include: { category: true, inventory: true },
     }),
     prisma.settlement.findMany({
-      include: { items: { include: { product: { include: { category: true } } } } },
+      include: {
+        delivery: { include: { supplier: true } },
+        items: { include: { product: { include: { category: true } } } },
+      },
       orderBy: { settledAt: 'asc' },
     }),
     prisma.delivery.findMany({
@@ -41,6 +44,11 @@ export async function GET() {
   const monthMap = new Map<string, { revenue: number; cost: number; units: number; settlements: number }>()
   const productAgg = new Map<string, { id: string; name: string; sku: string; revenue: number; cost: number; units: number; categoryName: string | null }>()
   const categoryAgg = new Map<string, { name: string; revenue: number; cost: number; units: number }>()
+  const productBySupplierMap = new Map<string, {
+    productId: string; productName: string; productSku: string
+    supplierId: string; supplierName: string
+    revenue: number; cost: number; units: number
+  }>()
 
   for (const s of settlements) {
     const key = `${s.settledAt.getFullYear()}-${String(s.settledAt.getMonth() + 1).padStart(2, '0')}`
@@ -75,6 +83,23 @@ export async function GET() {
       ca.cost += cost
       ca.units += it.quantitySold
       categoryAgg.set(cname, ca)
+
+      const sup = s.delivery?.supplier
+      if (sup) {
+        const key2 = `${it.productId}::${sup.id}`
+        const ps = productBySupplierMap.get(key2) ?? {
+          productId: it.productId,
+          productName: it.product?.name ?? '—',
+          productSku: it.product?.sku ?? '',
+          supplierId: sup.id,
+          supplierName: sup.name,
+          revenue: 0, cost: 0, units: 0,
+        }
+        ps.revenue += it.totalAmountCt
+        ps.cost += cost
+        ps.units += it.quantitySold
+        productBySupplierMap.set(key2, ps)
+      }
     }
     monthMap.set(key, m)
   }
@@ -280,5 +305,21 @@ export async function GET() {
     deadStock: deadStock.slice(0, 50),
     reorderList: reorderList.slice(0, 50),
     marginBuckets: marginBuckets.map((b) => ({ label: b.label, count: b.count })),
+    productBySupplier: Array.from(productBySupplierMap.values()).map((ps) => {
+      const profit = ps.revenue - ps.cost
+      return {
+        productId: ps.productId,
+        productName: ps.productName,
+        productSku: ps.productSku,
+        supplierId: ps.supplierId,
+        supplierName: ps.supplierName,
+        revenue: ps.revenue,
+        cost: ps.cost,
+        profit,
+        units: ps.units,
+        avgPriceCt: ps.units > 0 ? Math.round(ps.revenue / ps.units) : 0,
+        marginPct: ps.revenue > 0 ? (profit / ps.revenue) * 100 : 0,
+      }
+    }).sort((a, b) => a.productName.localeCompare(b.productName) || b.revenue - a.revenue),
   })
 }

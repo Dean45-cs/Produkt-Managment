@@ -13,7 +13,13 @@ export async function GET() {
     include: {
       category: true,
       inventory: true,
-      settlementItems: { include: { settlement: true } },
+      settlementItems: {
+        include: {
+          settlement: {
+            include: { delivery: { include: { supplier: true } } },
+          },
+        },
+      },
       reviews: true,
     },
   })
@@ -33,6 +39,30 @@ export async function GET() {
       ? settledDates.reduce((latest, d) => (d > latest ? d : latest))
       : null
 
+    const supplierMap = new Map<string, { id: string; name: string; revenue: number; cost: number; units: number }>()
+    for (const si of p.settlementItems) {
+      const sup = si.settlement.delivery?.supplier
+      if (!sup) continue
+      const agg = supplierMap.get(sup.id) ?? { id: sup.id, name: sup.name, revenue: 0, cost: 0, units: 0 }
+      agg.revenue += si.totalAmountCt
+      agg.cost += si.quantitySold * p.purchasePriceCt
+      agg.units += si.quantitySold
+      supplierMap.set(sup.id, agg)
+    }
+    const supplierBreakdown = Array.from(supplierMap.values()).map((s) => {
+      const prof = s.revenue - s.cost
+      return {
+        supplierId: s.id,
+        supplierName: s.name,
+        revenue: s.revenue,
+        cost: s.cost,
+        profit: prof,
+        units: s.units,
+        avgPriceCt: s.units > 0 ? Math.round(s.revenue / s.units) : 0,
+        marginPct: s.revenue > 0 ? (prof / s.revenue) * 100 : 0,
+      }
+    }).sort((a, b) => b.revenue - a.revenue)
+
     return {
       id: p.id,
       name: p.name,
@@ -51,6 +81,7 @@ export async function GET() {
       ratingAvg,
       ratingCount,
       lastSold,
+      supplierBreakdown,
     }
   }).sort((a, b) => b.revenue - a.revenue)
 

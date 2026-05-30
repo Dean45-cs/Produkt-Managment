@@ -27,12 +27,19 @@ interface SupplierStat {
   avgPriceCt: number; marginPct: number; lastSettledAt: string | null
 }
 
+interface SupplierBreakdown {
+  supplierId: string; supplierName: string
+  revenue: number; cost: number; profit: number; units: number
+  avgPriceCt: number; marginPct: number
+}
+
 interface ProductStat {
   id: string; name: string; sku: string; imageUrl?: string | null
   category?: { name: string; color?: string | null } | null
   purchasePriceCt: number; revenue: number; cost: number; profit: number
   quantity: number; avgPriceCt: number; marginPct: number; stock: number
   settlementCount: number; ratingAvg: number; ratingCount: number; lastSold: string | null
+  supplierBreakdown: SupplierBreakdown[]
 }
 
 interface Review {
@@ -60,6 +67,12 @@ interface Insights {
   deadStock: Array<{ id: string; name: string; sku: string; stock: number; valueCt: number; lastSold: string | null; daysSinceSold: number | null }>
   reorderList: Array<{ id: string; name: string; sku: string; stock: number; reorderPoint: number; reorderQty: number }>
   marginBuckets: Array<{ label: string; count: number }>
+  productBySupplier: Array<{
+    productId: string; productName: string; productSku: string
+    supplierId: string; supplierName: string
+    revenue: number; cost: number; profit: number; units: number
+    avgPriceCt: number; marginPct: number
+  }>
 }
 
 const PIE_COLORS = ['#e11d48', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
@@ -437,6 +450,98 @@ export default function AnalyticsPage() {
             </div>
           )}
 
+          {/* Lieferanten-Vergleich je Produkt */}
+          {(() => {
+            const pbs = insights?.productBySupplier
+            if (!pbs?.length) return null
+            const grouped = new Map<string, typeof pbs>()
+            for (const e of pbs) {
+              const list = grouped.get(e.productId) ?? []
+              list.push(e)
+              grouped.set(e.productId, list)
+            }
+            const multiSupplier = Array.from(grouped.values())
+              .filter((g) => g.length > 1)
+              .sort((a, b) => b.reduce((s, e) => s + e.revenue, 0) - a.reduce((s, e) => s + e.revenue, 0))
+            if (multiSupplier.length === 0) return null
+            return (
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle>Lieferanten-Vergleich je Produkt</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {multiSupplier.length} Produkt{multiSupplier.length !== 1 ? 'e' : ''} werden über mehrere Lieferanten abgerechnet — Preis- und Margenvergleich.
+                    Grün markiert = besserer Durchschnittspreis.
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-6">
+                    {multiSupplier.map((entries) => {
+                      const { productId, productName, productSku } = entries[0]
+                      const sorted = [...entries].sort((a, b) => b.avgPriceCt - a.avgPriceCt)
+                      const chartData = sorted.map((e) => ({
+                        name: e.supplierName,
+                        'Ø-Preis': e.avgPriceCt / 100,
+                      }))
+                      return (
+                        <div key={productId} className="rounded-lg border p-4">
+                          <div className="flex items-center gap-2 mb-3 flex-wrap">
+                            <Link href={`/products/${productId}`} className="font-semibold text-rose-600 hover:underline">
+                              {productName}
+                            </Link>
+                            <span className="text-xs text-muted-foreground">{productSku}</span>
+                            <Badge variant="info" className="ml-auto">{entries.length} Lieferanten</Badge>
+                          </div>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            <ResponsiveContainer width="100%" height={Math.max(140, sorted.length * 52)}>
+                              <BarChart data={chartData} layout="vertical" margin={{ left: 10 }}>
+                                <CartesianGrid strokeDasharray="3 3" />
+                                <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                                <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                                <Bar dataKey="Ø-Preis" radius={[0, 2, 2, 0]}>
+                                  {sorted.map((_, i) => (
+                                    <Cell key={i} fill={i === 0 ? '#10b981' : '#e11d48'} />
+                                  ))}
+                                </Bar>
+                              </BarChart>
+                            </ResponsiveContainer>
+                            <div className="overflow-x-auto">
+                              <table className="w-full text-sm">
+                                <thead>
+                                  <tr className="border-b">
+                                    <th className="text-left py-1.5 px-2">Lieferant</th>
+                                    <th className="text-right py-1.5 px-2">Ø-Preis</th>
+                                    <th className="text-right py-1.5 px-2">Stück</th>
+                                    <th className="text-right py-1.5 px-2">Umsatz</th>
+                                    <th className="text-right py-1.5 px-2">Marge</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {sorted.map((e, i) => (
+                                    <tr key={e.supplierId} className={`border-b ${i === 0 ? 'bg-green-50' : ''}`}>
+                                      <td className="py-1.5 px-2 font-medium">
+                                        {i === 0 && <span className="text-green-600 mr-1 text-xs">▲</span>}
+                                        {e.supplierName}
+                                      </td>
+                                      <td className="py-1.5 px-2 text-right font-medium text-rose-700">{euro(e.avgPriceCt)}</td>
+                                      <td className="py-1.5 px-2 text-right">{e.units}</td>
+                                      <td className="py-1.5 px-2 text-right">{euro(e.revenue)}</td>
+                                      <td className="py-1.5 px-2 text-right">{e.marginPct.toFixed(1)}%</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })()}
+
           <Card className="mb-6">
             <CardHeader><CardTitle>Top 8 Produkte nach Umsatz & Gewinn</CardTitle></CardHeader>
             <CardContent>
@@ -715,6 +820,72 @@ export default function AnalyticsPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {insights?.productBySupplier?.length ? (
+                <Card className="mt-6">
+                  <CardHeader>
+                    <CardTitle>Produkte je Lieferant</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Welche Produkte verkauft jeder Lieferant — Ø-Preis und Marge je Produkt
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-2 px-2">Lieferant</th>
+                            <th className="text-left py-2 px-2">Produkt</th>
+                            <th className="text-right py-2 px-2">Ø-Preis</th>
+                            <th className="text-right py-2 px-2">Stück</th>
+                            <th className="text-right py-2 px-2">Umsatz</th>
+                            <th className="text-right py-2 px-2">Marge</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            // For multi-supplier products, show best supplier highlighted
+                            const bestByProduct = new Map<string, string>()
+                            const grouped2 = new Map<string, typeof insights.productBySupplier>()
+                            for (const e of insights.productBySupplier) {
+                              const list = grouped2.get(e.productId) ?? []
+                              list.push(e)
+                              grouped2.set(e.productId, list)
+                            }
+                            for (const [pid, entries] of Array.from(grouped2.entries())) {
+                              if (entries.length > 1) {
+                                const best = [...entries].sort((a, b) => b.avgPriceCt - a.avgPriceCt)[0]
+                                bestByProduct.set(`${pid}::${best.supplierId}`, 'best')
+                              }
+                            }
+                            return insights.productBySupplier
+                              .slice()
+                              .sort((a, b) => a.supplierName.localeCompare(b.supplierName) || b.revenue - a.revenue)
+                              .map((e) => {
+                                const isBest = bestByProduct.has(`${e.productId}::${e.supplierId}`)
+                                return (
+                                  <tr key={`${e.productId}-${e.supplierId}`} className={`border-b hover:bg-neutral-50 ${isBest ? 'bg-green-50' : ''}`}>
+                                    <td className="py-2 px-2 text-muted-foreground">{e.supplierName}</td>
+                                    <td className="py-2 px-2 font-medium">
+                                      <Link href={`/products/${e.productId}`} className="text-rose-600 hover:underline">
+                                        {e.productName}
+                                      </Link>
+                                      {isBest && <span className="ml-1.5 text-xs text-green-600 font-normal">▲ bester Preis</span>}
+                                    </td>
+                                    <td className="py-2 px-2 text-right font-medium text-rose-700">{euro(e.avgPriceCt)}</td>
+                                    <td className="py-2 px-2 text-right">{e.units}</td>
+                                    <td className="py-2 px-2 text-right">{euro(e.revenue)}</td>
+                                    <td className="py-2 px-2 text-right">{e.marginPct.toFixed(1)}%</td>
+                                  </tr>
+                                )
+                              })
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : null}
             </>
           )}
         </TabsContent>
