@@ -20,22 +20,61 @@ const MIGRATIONS_DIR = path.resolve(process.cwd(), 'prisma', 'migrations')
 interface Vault {
   prisma: PrismaClient | null
   sessionToken: string | null
+  lastActivityMs: number
 }
 
 const globalForVault = globalThis as unknown as { __pmsVault?: Vault }
-const vault: Vault = globalForVault.__pmsVault ?? { prisma: null, sessionToken: null }
+const vault: Vault = globalForVault.__pmsVault ?? { prisma: null, sessionToken: null, lastActivityMs: 0 }
 globalForVault.__pmsVault = vault
 
+/**
+ * Auto-Sperre: Nach dieser Inaktivität wird der Entschlüsselungs-Key aus dem
+ * Speicher entfernt (wichtig am geteilten/Arbeits-PC). Konfigurierbar über
+ * IDLE_TIMEOUT_MINUTES, Standard 15 Minuten. 0 = deaktiviert.
+ */
+const IDLE_MINUTES = (() => {
+  const n = parseInt(process.env.IDLE_TIMEOUT_MINUTES || '15', 10)
+  return Number.isFinite(n) && n >= 0 ? n : 15
+})()
+const IDLE_MS = IDLE_MINUTES * 60 * 1000
+
+export function getIdleTimeoutMs(): number {
+  return IDLE_MS
+}
+
+/** Prüft auf Inaktivitäts-Ablauf und sperrt bei Bedarf (entfernt den Key aus dem RAM). */
+function expireIfIdle(): void {
+  if (!vault.prisma) return
+  if (IDLE_MS > 0 && Date.now() - vault.lastActivityMs > IDLE_MS) {
+    const old = vault.prisma
+    vault.prisma = null
+    vault.sessionToken = null
+    // Verbindung im Hintergrund schließen (nicht blockieren).
+    old.$disconnect().catch(() => {})
+  }
+}
+
 export function isUnlocked(): boolean {
+  expireIfIdle()
   return vault.prisma !== null
 }
 
 export function getPrismaOrNull(): PrismaClient | null {
+  expireIfIdle()
   return vault.prisma
 }
 
 export function getSessionToken(): string | null {
+  expireIfIdle()
   return vault.sessionToken
+}
+
+/** Aktualisiert den Aktivitäts-Zeitstempel (Heartbeat bei echter Nutzerinteraktion). */
+export function touch(): boolean {
+  expireIfIdle()
+  if (!vault.prisma) return false
+  vault.lastActivityMs = Date.now()
+  return true
 }
 
 /** Gibt es bereits eine (verschlüsselte) Datenbankdatei? Sonst: Erststart → Passwort festlegen. */
@@ -95,6 +134,7 @@ export async function unlock(password: string): Promise<UnlockResult> {
 
   vault.prisma = prisma
   vault.sessionToken = crypto.randomBytes(32).toString('hex')
+  vault.lastActivityMs = Date.now()
   failedAttempts = 0
   lockedUntilMs = 0
   return { ok: true, firstRun }

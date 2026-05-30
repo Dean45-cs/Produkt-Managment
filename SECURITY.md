@@ -11,6 +11,9 @@ kopiert. Zusätzlich ist die App durch eine **Login-Sperre** geschützt.
   PBKDF2). Das Passwort wird **nirgends gespeichert**.
 - Der entschlüsselte Zugriff lebt nur im **Arbeitsspeicher** des Servers. Nach
   einem Neustart musst du erneut entsperren.
+- **Auto-Sperre:** Nach 15 Minuten ohne Aktivität (einstellbar über
+  `IDLE_TIMEOUT_MINUTES`) wird der Schlüssel automatisch aus dem Speicher
+  entfernt und das Master-Passwort erneut verlangt – wichtig am geteilten PC.
 - Es gibt **kein Backdoor / keine Wiederherstellung**: Vergisst du das Passwort,
   sind die Daten unwiederbringlich verloren. (Das ist der Sinn starker Verschlüsselung.)
 

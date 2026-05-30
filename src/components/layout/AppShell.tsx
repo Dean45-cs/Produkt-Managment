@@ -19,24 +19,44 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (isUnlockPage) return
     let active = true
-    fetch('/api/auth/status')
-      .then((r) => r.json())
-      .then((s) => {
-        if (!active) return
-        if (s.unlocked) {
-          setStatus('unlocked')
-        } else {
-          setStatus('locked')
-          router.replace('/unlock')
-        }
-      })
-      .catch(() => {
-        if (!active) return
-        setStatus('locked')
-        router.replace('/unlock')
-      })
+
+    const goLocked = () => {
+      if (!active) return
+      setStatus('locked')
+      router.replace('/unlock')
+    }
+
+    const checkStatus = () =>
+      fetch('/api/auth/status')
+        .then((r) => r.json())
+        .then((s) => {
+          if (!active) return
+          if (s.unlocked) setStatus('unlocked')
+          else goLocked()
+        })
+        .catch(goLocked)
+
+    checkStatus()
+
+    // Heartbeat bei echter Nutzeraktivität, gedrosselt auf max. 1×/Minute.
+    // Hält die serverseitige Auto-Sperre zurück, solange aktiv gearbeitet wird.
+    let lastBeat = 0
+    const onActivity = () => {
+      const now = Date.now()
+      if (now - lastBeat < 60_000) return
+      lastBeat = now
+      fetch('/api/auth/touch', { method: 'POST' }).catch(() => {})
+    }
+    const events: (keyof DocumentEventMap)[] = ['mousedown', 'keydown', 'scroll', 'touchstart']
+    events.forEach((e) => window.addEventListener(e, onActivity, { passive: true }))
+
+    // Regelmäßig prüfen, ob die App serverseitig (Inaktivität) gesperrt wurde.
+    const poll = setInterval(checkStatus, 60_000)
+
     return () => {
       active = false
+      clearInterval(poll)
+      events.forEach((e) => window.removeEventListener(e, onActivity))
     }
   }, [isUnlockPage, router])
 
