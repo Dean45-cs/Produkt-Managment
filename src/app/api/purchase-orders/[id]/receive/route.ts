@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { handlePrismaError } from '@/lib/api-errors'
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -16,6 +17,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'quantityReceived muss eine positive ganze Zahl sein' }, { status: 400 })
   }
 
+  // Zielstandort muss existieren (sonst FK-Fehler mitten in der Transaktion).
+  const loc = await prisma.location.findUnique({ where: { id: locationId } })
+  if (!loc) return NextResponse.json({ error: 'Standort nicht gefunden' }, { status: 400 })
+
+  try {
   await prisma.$transaction(async (tx) => {
     for (const item of typedItems) {
       // purchaseOrderId-Prüfung verhindert, dass fremde Bestellpositionen verändert werden.
@@ -56,6 +62,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       })
     }
   })
+  } catch (err) {
+    return handlePrismaError(err)
+  }
 
   return NextResponse.json({ ok: true })
 }

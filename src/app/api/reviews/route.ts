@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { handlePrismaError } from '@/lib/api-errors'
 
 /** Kundenbewertungen (Sterne). Optional je Produkt filterbar via ?productId= */
 export async function GET(req: Request) {
@@ -22,16 +23,21 @@ export async function POST(req: Request) {
 
   if (!productId) return NextResponse.json({ error: 'productId erforderlich' }, { status: 400 })
   const r = Math.round(Number(rating))
-  if (!r || r < 1 || r > 5) return NextResponse.json({ error: 'rating muss zwischen 1 und 5 liegen' }, { status: 400 })
+  if (!Number.isInteger(r) || r < 1 || r > 5) {
+    return NextResponse.json({ error: 'rating muss zwischen 1 und 5 liegen' }, { status: 400 })
+  }
 
-  const review = await prisma.review.create({
-    data: {
-      productId,
-      rating: r,
-      comment: comment?.trim() || null,
-      customerName: customerName?.trim() || null,
-    },
-  })
-
-  return NextResponse.json(review, { status: 201 })
+  try {
+    const review = await prisma.review.create({
+      data: {
+        productId,
+        rating: r,
+        comment: comment?.trim() || null,
+        customerName: customerName?.trim() || null,
+      },
+    })
+    return NextResponse.json(review, { status: 201 })
+  } catch (err) {
+    return handlePrismaError(err)
+  }
 }

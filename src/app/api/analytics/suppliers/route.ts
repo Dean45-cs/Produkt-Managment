@@ -34,7 +34,8 @@ export async function GET() {
   }> = {}
 
   for (const s of settlements) {
-    const sup = s.delivery.supplier
+    const sup = s.delivery?.supplier
+    if (!sup) continue
     if (!bySupplier[sup.id]) {
       bySupplier[sup.id] = {
         supplierId: sup.id,

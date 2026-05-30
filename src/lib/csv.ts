@@ -23,13 +23,16 @@ export function arrayToCsv(headers: string[], rows: CsvCell[][]): string {
 
 /** Cent-Betrag als deutsche Dezimalzahl (z.B. 1234 -> "12,34") ohne Währungssymbol. */
 export function centsToCsvNumber(cents: number): string {
-  return (cents / 100).toFixed(2).replace('.', ',')
+  const n = Number.isFinite(cents) ? cents : 0
+  return (n / 100).toFixed(2).replace('.', ',')
 }
 
 /** Datum als ISO-ähnliches deutsches Format (TT.MM.JJJJ) für CSV. */
 export function dateToCsv(date: Date | string | null | undefined): string {
   if (!date) return ''
-  return new Date(date).toLocaleDateString('de-DE')
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return ''
+  return d.toLocaleDateString('de-DE')
 }
 
 /** Erstellt eine NextResponse-kompatible CSV-Antwort als Download. */

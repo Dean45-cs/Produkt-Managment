@@ -1,6 +1,13 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { handlePrismaError } from '@/lib/api-errors'
+
+/** Wandelt einen Eingabewert in eine nicht-negative ganze Zahl (Default 0). */
+function intOrZero(v: unknown): number {
+  const n = Math.round(Number(v))
+  return Number.isFinite(n) && n >= 0 ? n : 0
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
@@ -34,21 +41,24 @@ export async function POST(req: Request) {
   const { name, sku, description, imageUrl, categoryId, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
   if (!name?.trim() || !sku?.trim()) return NextResponse.json({ error: 'Name and SKU required' }, { status: 400 })
 
-  const product = await prisma.product.create({
-    data: {
-      name: name.trim(),
-      sku: sku.trim(),
-      description,
-      imageUrl: imageUrl || null,
-      categoryId: categoryId || null,
-      unit: unit || 'Stück',
-      purchasePriceCt: purchasePriceCt || 0,
-      minStockLevel: minStockLevel || 0,
-      reorderPoint: reorderPoint || 0,
-      reorderQty: reorderQty || 0,
-    },
-    include: { category: true },
-  })
-
-  return NextResponse.json(product, { status: 201 })
+  try {
+    const product = await prisma.product.create({
+      data: {
+        name: name.trim(),
+        sku: sku.trim(),
+        description,
+        imageUrl: imageUrl || null,
+        categoryId: categoryId || null,
+        unit: unit || 'Stück',
+        purchasePriceCt: intOrZero(purchasePriceCt),
+        minStockLevel: intOrZero(minStockLevel),
+        reorderPoint: intOrZero(reorderPoint),
+        reorderQty: intOrZero(reorderQty),
+      },
+      include: { category: true },
+    })
+    return NextResponse.json(product, { status: 201 })
+  } catch (err) {
+    return handlePrismaError(err)
+  }
 }

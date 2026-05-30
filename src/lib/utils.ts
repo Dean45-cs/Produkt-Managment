@@ -7,5 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export function formatDate(date: string | Date | null | undefined): string {
   if (!date) return '—'
-  return new Date(date).toLocaleDateString('de-DE')
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('de-DE')
 }

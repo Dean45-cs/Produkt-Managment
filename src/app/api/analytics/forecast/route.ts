@@ -6,7 +6,9 @@ import { forecast } from '@/lib/calculations'
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const productId = searchParams.get('productId')
-  const periods = parseInt(searchParams.get('periods') || '3')
+  // periods auf 1..24 begrenzen, um NaN/negative Werte und übergroße Schleifen zu vermeiden.
+  const parsedPeriods = parseInt(searchParams.get('periods') || '3', 10)
+  const periods = Number.isFinite(parsedPeriods) ? Math.min(24, Math.max(1, parsedPeriods)) : 3
 
   const items = await prisma.settlementItem.findMany({
     where: productId ? { productId } : undefined,

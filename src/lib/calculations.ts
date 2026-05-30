@@ -33,7 +33,10 @@ export function forecast(history: MonthlyPoint[], periods = 3): MonthlyPoint[] {
     const sumY = ys.reduce((s, y) => s + y, 0)
     const sumXY = xs.reduce((s, x, i) => s + x * ys[i], 0)
     const sumX2 = xs.reduce((s, x) => s + x * x, 0)
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX ** 2)
+    const denom = n * sumX2 - sumX ** 2
+    // Bei entartetem Nenner (theoretisch nie bei xs=[0..n-1]) flach extrapolieren.
+    if (denom === 0) return { slope: 0, intercept: sumY / n }
+    const slope = (n * sumXY - sumX * sumY) / denom
     const intercept = (sumY - slope * sumX) / n
     return { slope, intercept }
   }

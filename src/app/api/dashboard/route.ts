@@ -5,7 +5,8 @@ import { prisma } from '@/lib/prisma'
 export async function GET() {
   const now = new Date()
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-  const startOf12MonthsAgo = new Date(now.getFullYear() - 1, now.getMonth(), 1)
+  // Exakt 12 Monatsfenster (aktueller Monat + 11 vorige), nicht 13.
+  const startOf12MonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1)
 
   const [
     pendingDeliveries,

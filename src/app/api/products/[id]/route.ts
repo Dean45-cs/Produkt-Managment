@@ -1,6 +1,12 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { handlePrismaError } from '@/lib/api-errors'
+
+function intOrZero(v: unknown): number {
+  const n = Math.round(Number(v))
+  return Number.isFinite(n) && n >= 0 ? n : 0
+}
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -29,12 +35,27 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
   if (!name?.trim() || !sku?.trim()) {
     return NextResponse.json({ error: 'Name and SKU required' }, { status: 400 })
   }
-  const product = await prisma.product.update({
-    where: { id },
-    data: { name: name.trim(), sku: sku.trim(), description, imageUrl: imageUrl || null, categoryId: categoryId || null, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty },
-    include: { category: true },
-  })
-  return NextResponse.json(product)
+  try {
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name: name.trim(),
+        sku: sku.trim(),
+        description,
+        imageUrl: imageUrl || null,
+        categoryId: categoryId || null,
+        unit,
+        purchasePriceCt: intOrZero(purchasePriceCt),
+        minStockLevel: intOrZero(minStockLevel),
+        reorderPoint: intOrZero(reorderPoint),
+        reorderQty: intOrZero(reorderQty),
+      },
+      include: { category: true },
+    })
+    return NextResponse.json(product)
+  } catch (err) {
+    return handlePrismaError(err)
+  }
 }
 
 export async function DELETE(_: Request, { params }: { params: Promise<{ id: string }> }) {

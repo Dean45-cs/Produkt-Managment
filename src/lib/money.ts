@@ -1,14 +1,16 @@
 export function centsToEuro(cents: number): string {
-  return (cents / 100).toLocaleString('de-DE', {
+  const n = Number.isFinite(cents) ? cents : 0
+  return (n / 100).toLocaleString('de-DE', {
     style: 'currency',
     currency: 'EUR',
   })
 }
 
 export function euroToCents(euro: number): number {
-  return Math.round(euro * 100)
+  const n = Math.round(euro * 100)
+  return Number.isFinite(n) ? n : 0
 }
 
 export function centsToDecimal(cents: number): number {
-  return cents / 100
+  return Number.isFinite(cents) ? cents / 100 : 0
 }
