@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate } from '@/lib/utils'
-import { Plus, Eye } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Plus, Eye, ShoppingCart } from 'lucide-react'
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Entwurf',
@@ -56,6 +57,17 @@ export default function PurchaseOrdersPage() {
         }
       />
 
+      {!isLoading && orders.length === 0 ? (
+        <Card><CardContent className="p-0">
+          <EmptyState
+            icon={ShoppingCart}
+            title="Noch keine Bestellungen"
+            description="Bestelle Ware bei deinem Großhändler. Beim Wareneingang („Erhalten“) wird dein Lagerbestand automatisch erhöht."
+            actionHref="/purchase-orders/new"
+            actionLabel="Erste Bestellung anlegen"
+          />
+        </CardContent></Card>
+      ) : (
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -72,8 +84,6 @@ export default function PurchaseOrdersPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
-              ) : orders.length === 0 ? (
-                <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Noch keine Bestellungen</TableCell></TableRow>
               ) : orders.map((o) => (
                 <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/purchase-orders/${o.id}`)}>
                   <TableCell>{formatDate(o.createdAt)}</TableCell>
@@ -92,6 +102,7 @@ export default function PurchaseOrdersPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }

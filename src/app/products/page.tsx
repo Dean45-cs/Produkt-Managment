@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { centsToEuro } from '@/lib/money'
 import { ExportButton } from '@/components/ExportButton'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Plus, Search, Pencil, Trash2, Eye, Package } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
@@ -77,6 +78,17 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {!isLoading && products.length === 0 && !search ? (
+        <div className="rounded-lg border bg-card">
+          <EmptyState
+            icon={Package}
+            title="Noch keine Produkte"
+            description="Lege dein erstes Produkt an — z.B. „Brötchen“. Danach kannst du es einkaufen und an deine Verkäufer übergeben."
+            actionHref="/products/new"
+            actionLabel="Erstes Produkt anlegen"
+          />
+        </div>
+      ) : (
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -95,7 +107,7 @@ export default function ProductsPage() {
             {isLoading ? (
               <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
             ) : products.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Keine Produkte gefunden</TableCell></TableRow>
+              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Keine Produkte für „{search}“ gefunden</TableCell></TableRow>
             ) : (
               products.map((p) => (
                 <TableRow key={p.id}>
@@ -152,6 +164,7 @@ export default function ProductsPage() {
           </TableBody>
         </Table>
       </div>
+      )}
     </div>
   )
 }

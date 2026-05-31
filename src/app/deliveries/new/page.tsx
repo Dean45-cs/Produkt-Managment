@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { centsToDecimal, euroToCents } from '@/lib/money'
-import { Plus, Trash2 } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Trash2, AlertCircle } from 'lucide-react'
 import { apiFetch, jsonInit } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
@@ -69,14 +70,37 @@ export default function NewDeliveryPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!supplierId) return alert('Bitte Verkäufer auswählen')
-    if (items.some((i) => !i.productId || !i.locationId)) return alert('Alle Positionen ausfüllen')
+    if (!supplierId) return toast('Bitte zuerst einen Verkäufer auswählen', 'error')
+    if (items.some((i) => !i.productId || !i.locationId)) return toast('Bitte bei jeder Position Produkt und Standort wählen', 'error')
     mutation.mutate({ supplierId, notes, items })
   }
+
+  // Voraussetzungen prüfen, damit der Nutzer nicht in leeren Dropdowns festhängt
+  const missing: { label: string; href: string }[] = []
+  if (suppliers.length === 0) missing.push({ label: 'Verkäufer', href: '/suppliers' })
+  if (products.length === 0) missing.push({ label: 'Produkte', href: '/products/new' })
+  if (locations.length === 0) missing.push({ label: 'Standorte', href: '/locations' })
 
   return (
     <div>
       <PageHeader title="Neue Ladung an Verkäufer" description="Lege fest, welche Ware ein Verkäufer mitnimmt. Beim Übergeben verlässt sie dein Lager (Bestand sinkt)." />
+
+      {missing.length > 0 && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+          <div>
+            <p className="font-semibold">Bevor du eine Ladung anlegen kannst, fehlt noch etwas:</p>
+            <ul className="mt-1 space-y-0.5">
+              {missing.map((m) => (
+                <li key={m.href}>
+                  • Mindestens ein {m.label} —{' '}
+                  <Link href={m.href} className="font-medium underline hover:text-amber-700">jetzt anlegen →</Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
         <Card>
@@ -158,7 +182,7 @@ export default function NewDeliveryPage() {
           </CardContent>
         </Card>
 
-        <Button type="submit" disabled={mutation.isPending}>
+        <Button type="submit" disabled={mutation.isPending || missing.length > 0}>
           {mutation.isPending ? 'Speichern...' : 'Ladung anlegen'}
         </Button>
       </form>

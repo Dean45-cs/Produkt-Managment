@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { formatDate } from '@/lib/utils'
 import { centsToEuro } from '@/lib/money'
 import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS } from '@/lib/delivery'
-import { Plus, Eye } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Plus, Eye, Truck } from 'lucide-react'
 
 interface Delivery {
   id: string
@@ -42,6 +43,17 @@ export default function DeliveriesPage() {
         }
       />
 
+      {!isLoading && deliveries.length === 0 ? (
+        <Card><CardContent className="p-0">
+          <EmptyState
+            icon={Truck}
+            title="Noch keine Ladungen"
+            description="Lege eine Ladung an, sobald ein Verkäufer Ware bei dir abholt. Beim Übergeben wird der Bestand automatisch reduziert."
+            actionHref="/deliveries/new"
+            actionLabel="Erste Ladung anlegen"
+          />
+        </CardContent></Card>
+      ) : (
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -59,8 +71,6 @@ export default function DeliveriesPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
-              ) : deliveries.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Noch keine Ladungen</TableCell></TableRow>
               ) : deliveries.map((d) => {
                 const settledSum = (d.settlements || []).reduce((s, x) => s + x.totalAmountCt, 0)
                 return (
@@ -87,6 +97,7 @@ export default function DeliveriesPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }

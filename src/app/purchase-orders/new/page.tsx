@@ -11,7 +11,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { centsToDecimal, euroToCents } from '@/lib/money'
-import { Plus, Trash2, Wand2 } from 'lucide-react'
+import Link from 'next/link'
+import { Plus, Trash2, Wand2, AlertCircle } from 'lucide-react'
 import { apiFetch, jsonInit } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
@@ -53,7 +54,7 @@ export default function NewPurchaseOrderPage() {
       const suggestions: Array<{ productId: string; suggestedQty: number; unitPriceCt: number }> =
         await fetch('/api/purchase-orders/suggestions').then((r) => r.json())
       if (!suggestions.length) {
-        alert('Aktuell sind keine Produkte unter dem Nachbestellpunkt.')
+        toast('Aktuell sind keine Produkte unter dem Nachbestellpunkt.', 'info')
         return
       }
       setItems(suggestions.map((s) => ({
@@ -81,6 +82,20 @@ export default function NewPurchaseOrderPage() {
   return (
     <div>
       <PageHeader title="Neue Einkaufsbestellung" description="Ware beim Großhändler bestellen. Beim Wareneingang ('Erhalten') steigt dein Bestand." />
+
+      {products.length === 0 && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+          <div>
+            <p className="font-semibold">Du hast noch keine Produkte angelegt</p>
+            <p className="mt-0.5">
+              Lege zuerst mindestens ein Produkt an, das du bestellen möchtest —{' '}
+              <Link href="/products/new" className="font-medium underline hover:text-amber-700">jetzt anlegen →</Link>
+            </p>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
         <Card>
           <CardHeader><CardTitle>Allgemein</CardTitle></CardHeader>
@@ -144,7 +159,7 @@ export default function NewPurchaseOrderPage() {
           </CardContent>
         </Card>
 
-        <Button type="submit" disabled={mutation.isPending}>
+        <Button type="submit" disabled={mutation.isPending || products.length === 0}>
           {mutation.isPending ? 'Speichern...' : 'Bestellung erstellen'}
         </Button>
       </form>

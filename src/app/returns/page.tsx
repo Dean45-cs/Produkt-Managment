@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { formatDate } from '@/lib/utils'
-import { Plus } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Plus, RotateCcw } from 'lucide-react'
 
 interface Return {
   id: string
@@ -35,6 +36,17 @@ export default function ReturnsPage() {
         }
       />
 
+      {!isLoading && returns.length === 0 ? (
+        <Card><CardContent className="p-0">
+          <EmptyState
+            icon={RotateCcw}
+            title="Noch keine Retouren"
+            description="Wenn ein Verkäufer unverkaufte Ware zurückgibt, erfasse sie hier. Der Bestand wird automatisch wieder erhöht."
+            actionHref="/returns/new"
+            actionLabel="Erste Retoure erfassen"
+          />
+        </CardContent></Card>
+      ) : (
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -50,8 +62,6 @@ export default function ReturnsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
-              ) : returns.length === 0 ? (
-                <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Noch keine Retouren</TableCell></TableRow>
               ) : returns.map((r) => (
                 <TableRow key={r.id}>
                   <TableCell>{formatDate(r.returnDate)}</TableCell>
@@ -65,6 +75,7 @@ export default function ReturnsPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }

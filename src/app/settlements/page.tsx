@@ -11,7 +11,8 @@ import { centsToEuro } from '@/lib/money'
 import { calcProfit } from '@/lib/calculations'
 import { formatDate } from '@/lib/utils'
 import { ExportButton } from '@/components/ExportButton'
-import { Eye } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Eye, PackageCheck } from 'lucide-react'
 
 interface Settlement {
   id: string
@@ -36,6 +37,17 @@ export default function SettlementsPage() {
         actions={<ExportButton href="/api/export/settlements" />}
       />
 
+      {!isLoading && settlements.length === 0 ? (
+        <Card><CardContent className="p-0">
+          <EmptyState
+            icon={PackageCheck}
+            title="Noch keine Abrechnungen"
+            description="Abrechnungen entstehen, wenn ein Verkäufer Verkäufe meldet. Öffne dazu eine Ladung und klicke auf „Verkauf erfassen“."
+            actionHref="/deliveries"
+            actionLabel="Zu den Ladungen"
+          />
+        </CardContent></Card>
+      ) : (
       <Card>
         <CardContent className="p-0">
           <Table>
@@ -54,8 +66,6 @@ export default function SettlementsPage() {
             <TableBody>
               {isLoading ? (
                 <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
-              ) : settlements.length === 0 ? (
-                <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Noch keine Abrechnungen</TableCell></TableRow>
               ) : settlements.map((s) => {
                 const totalQty = s.items.reduce((sum, i) => sum + i.quantitySold, 0)
                 const totalCost = s.items.reduce((sum, i) => sum + i.quantitySold * i.product.purchasePriceCt, 0)
@@ -82,6 +92,7 @@ export default function SettlementsPage() {
           </Table>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }

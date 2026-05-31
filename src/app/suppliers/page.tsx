@@ -9,7 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Plus, Pencil, Trash2, Users } from 'lucide-react'
 import { apiFetch, jsonInit } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
@@ -111,6 +112,17 @@ export default function SuppliersPage() {
         }
       />
 
+      {!isLoading && suppliers.length === 0 ? (
+        <div className="rounded-lg border bg-card">
+          <EmptyState
+            icon={Users}
+            title="Noch keine Verkäufer"
+            description="Lege deine Verkäufer (Außendienst) an, die Ware bei dir abholen und face2face verkaufen. Danach kannst du ihnen Ladungen übergeben."
+            actionLabel="Ersten Verkäufer anlegen"
+            onAction={() => setDialogOpen(true)}
+          />
+        </div>
+      ) : (
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -125,8 +137,6 @@ export default function SuppliersPage() {
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
-            ) : suppliers.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Noch keine Verkäufer angelegt</TableCell></TableRow>
             ) : suppliers.map((s) => (
               <TableRow key={s.id}>
                 <TableCell className="font-medium">{s.name}</TableCell>
@@ -154,6 +164,7 @@ export default function SuppliersPage() {
           </TableBody>
         </Table>
       </div>
+      )}
     </div>
   )
 }

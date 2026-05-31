@@ -61,7 +61,7 @@ export default function NewReturnPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (items.some((i) => !i.productId || !i.locationId)) return alert('Alle Felder ausfüllen')
+    if (items.some((i) => !i.productId || !i.locationId)) return toast('Bitte bei jeder Position Produkt und Ziel-Standort wählen', 'error')
     mutation.mutate({ deliveryId: deliveryId || undefined, returnDate, notes, items })
   }
 

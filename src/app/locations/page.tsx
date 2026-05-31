@@ -11,7 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
-import { Plus, Pencil, Trash2 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/empty-state'
+import { Plus, Pencil, Trash2, MapPin } from 'lucide-react'
 import { apiFetch, jsonInit } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
@@ -115,6 +116,17 @@ export default function LocationsPage() {
         }
       />
 
+      {!isLoading && locations.length === 0 ? (
+        <div className="rounded-lg border bg-card">
+          <EmptyState
+            icon={MapPin}
+            title="Noch keine Standorte"
+            description="Lege mindestens einen Lagerort an (z.B. „Hauptlager“). Standorte brauchst du, um Bestand zu führen und Ladungen zusammenzustellen."
+            actionLabel="Ersten Standort anlegen"
+            onAction={() => setDialogOpen(true)}
+          />
+        </div>
+      ) : (
       <div className="rounded-lg border bg-card">
         <Table>
           <TableHeader>
@@ -128,8 +140,6 @@ export default function LocationsPage() {
           <TableBody>
             {isLoading ? (
               <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
-            ) : locations.length === 0 ? (
-              <TableRow><TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Noch keine Standorte angelegt</TableCell></TableRow>
             ) : locations.map((l) => (
               <TableRow key={l.id}>
                 <TableCell className="font-medium">{l.name}</TableCell>
@@ -156,6 +166,7 @@ export default function LocationsPage() {
           </TableBody>
         </Table>
       </div>
+      )}
     </div>
   )
 }
