@@ -1,9 +1,11 @@
 /**
- * Logik für (Teil-)Abrechnungen einer Lieferung.
+ * Logik für den Verkaufsfortschritt einer Lieferung (einfacher Handel).
  *
- * Konsignationsmodell: Wir liefern Ware an einen Distributor. Dieser verkauft
- * sie nach und nach und rechnet ggf. mehrfach ab (Teilabrechnungen). Die noch
- * offene Menge je Produkt = geliefert − bereits abgerechnet − retourniert.
+ * Modell: Ein Lieferant liefert dir Ware → beim Status "Erhalten" steigt dein
+ * Bestand. Anschließend verkaufst du die Ware nach und nach (ggf. in mehreren
+ * Schritten) → beim Erfassen eines Verkaufs sinkt dein Bestand und es entsteht
+ * Umsatz. Die noch offene (= noch zu verkaufende) Menge je Produkt =
+ * erhalten − bereits verkauft − retourniert.
  */
 
 export const DELIVERY_STATUS = {
@@ -15,17 +17,17 @@ export const DELIVERY_STATUS = {
 } as const
 
 export const DELIVERY_STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Ausstehend',
-  DELIVERED: 'Geliefert',
-  PARTIALLY_SETTLED: 'Teilabgerechnet',
-  SETTLED: 'Abgerechnet',
+  PENDING: 'Erwartet',
+  DELIVERED: 'Erhalten',
+  PARTIALLY_SETTLED: 'Teilw. verkauft',
+  SETTLED: 'Verkauft',
   CANCELLED: 'Storniert',
 }
 
 export const DELIVERY_STATUS_VARIANTS: Record<string, 'default' | 'warning' | 'success' | 'destructive' | 'secondary' | 'info'> = {
   PENDING: 'secondary',
-  DELIVERED: 'warning',
-  PARTIALLY_SETTLED: 'info',
+  DELIVERED: 'info',
+  PARTIALLY_SETTLED: 'warning',
   SETTLED: 'success',
   CANCELLED: 'destructive',
 }

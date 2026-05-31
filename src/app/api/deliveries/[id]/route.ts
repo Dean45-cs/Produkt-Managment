@@ -55,39 +55,29 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       const current = await tx.delivery.findUnique({ where: { id }, include: { items: true } })
       if (!current) throw Object.assign(new Error('Not found'), { statusCode: 404 })
 
-      // Beim Markieren als GELIEFERT: Bestand prüfen und abbuchen.
+      // Beim Markieren als ERHALTEN: Ware kommt vom Lieferanten → Bestand erhöhen.
+      // Keine Bestandsprüfung nötig — der Wareneingang schafft den Bestand erst.
       if (status === 'DELIVERED' && current.status === 'PENDING') {
-        // Erst prüfen, ob an jedem Standort genug Bestand vorhanden ist.
-        for (const item of current.items) {
-          const inv = await tx.inventory.findUnique({
-            where: { productId_locationId: { productId: item.productId, locationId: item.locationId } },
-          })
-          const available = inv?.quantity ?? 0
-          if (available < item.quantitySent) {
-            throw Object.assign(
-              new Error(`Nicht genug Bestand für Produkt am Standort (verfügbar ${available}, benötigt ${item.quantitySent})`),
-              { statusCode: 400 }
-            )
-          }
-        }
         await tx.delivery.update({
           where: { id },
           data: { status, deliveryDate: deliveryDate ? new Date(deliveryDate) : new Date(), notes },
         })
         for (const item of current.items) {
           await tx.stockAdjustment.create({
-            data: { productId: item.productId, locationId: item.locationId, delta: -item.quantitySent, reason: 'DELIVERY_SENT', note: `Lieferung ${id}` },
+            data: { productId: item.productId, locationId: item.locationId, delta: item.quantitySent, reason: 'DELIVERY_RECEIVED', note: `Wareneingang Lieferung ${id}` },
           })
-          await tx.inventory.update({
+          await tx.inventory.upsert({
             where: { productId_locationId: { productId: item.productId, locationId: item.locationId } },
-            data: { quantity: { decrement: item.quantitySent } },
+            create: { productId: item.productId, locationId: item.locationId, quantity: item.quantitySent },
+            update: { quantity: { increment: item.quantitySent } },
           })
         }
         return
       }
 
-      // Beim Stornieren einer bereits gelieferten Lieferung: noch offene Menge
-      // zurück ins Lager buchen (verkaufte/retournierte Menge bleibt abgebucht).
+      // Beim Stornieren einer bereits erhaltenen Lieferung: die noch nicht
+      // verkaufte (offene) Menge wieder aus dem Bestand entfernen. Bereits
+      // verkaufte/retournierte Menge ist ohnehin schon abgebucht.
       if (status === 'CANCELLED' && (current.status === 'DELIVERED' || current.status === 'PARTIALLY_SETTLED')) {
         const full = await tx.delivery.findUnique({
           where: { id },
@@ -99,17 +89,31 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         })
         const progress = deliveryProgress(full!)
         const openByProduct = new Map(progress.perProduct.map((p) => [p.productId, p.quantityOpen]))
+        // Erst prüfen, ob die offene Menge überhaupt noch im Bestand liegt.
+        for (const item of current.items) {
+          const open = openByProduct.get(item.productId) ?? 0
+          if (open <= 0) continue
+          const inv = await tx.inventory.findUnique({
+            where: { productId_locationId: { productId: item.productId, locationId: item.locationId } },
+          })
+          const available = inv?.quantity ?? 0
+          if (available < open) {
+            throw Object.assign(
+              new Error(`Storno nicht möglich: Es liegen nur noch ${available} Stück im Bestand, ${open} müssten entfernt werden. Bestand zuerst korrigieren.`),
+              { statusCode: 400 }
+            )
+          }
+        }
         await tx.delivery.update({ where: { id }, data: { status, notes } })
         for (const item of current.items) {
           const open = openByProduct.get(item.productId) ?? 0
           if (open <= 0) continue
           await tx.stockAdjustment.create({
-            data: { productId: item.productId, locationId: item.locationId, delta: open, reason: 'DELIVERY_CANCELLED', note: `Storno Lieferung ${id}` },
+            data: { productId: item.productId, locationId: item.locationId, delta: -open, reason: 'DELIVERY_CANCELLED', note: `Storno Lieferung ${id}` },
           })
-          await tx.inventory.upsert({
+          await tx.inventory.update({
             where: { productId_locationId: { productId: item.productId, locationId: item.locationId } },
-            create: { productId: item.productId, locationId: item.locationId, quantity: open },
-            update: { quantity: { increment: open } },
+            data: { quantity: { decrement: open } },
           })
         }
         return

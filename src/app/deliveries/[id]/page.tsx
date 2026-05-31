@@ -33,7 +33,7 @@ export default function DeliveryDetailPage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['delivery', id] })
-      toast('Lieferung als geliefert markiert', 'success')
+      toast('Wareneingang gebucht – Bestand erhöht', 'success')
     },
     onError: (err: Error) => toast(err.message, 'error'),
   })
@@ -55,13 +55,13 @@ export default function DeliveryDetailPage() {
             <Badge variant={DELIVERY_STATUS_VARIANTS[delivery.status]}>{DELIVERY_STATUS_LABELS[delivery.status]}</Badge>
             {delivery.status === 'PENDING' && (
               <Button onClick={() => markDeliveredMutation.mutate()} disabled={markDeliveredMutation.isPending}>
-                <Truck className="h-4 w-4" /> Als geliefert markieren
+                <Truck className="h-4 w-4" /> Als erhalten markieren
               </Button>
             )}
             {canSettle && (
               <Link href={`/deliveries/${id}/settle`}>
                 <Button>
-                  <PackageCheck className="h-4 w-4" /> {settlements.length > 0 ? 'Weitere Teilabrechnung' : 'Abrechnen'}
+                  <PackageCheck className="h-4 w-4" /> {settlements.length > 0 ? 'Weiteren Verkauf erfassen' : 'Verkauf erfassen'}
                 </Button>
               </Link>
             )}
@@ -74,9 +74,9 @@ export default function DeliveryDetailPage() {
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Abrechnungsfortschritt</CardTitle>
+              <CardTitle>Verkaufsfortschritt</CardTitle>
               <span className="text-sm text-muted-foreground">
-                {progress.totalSettled} / {progress.totalSent} Stück abgerechnet · {progress.totalOpen} offen
+                {progress.totalSettled} / {progress.totalSent} Stück verkauft · {progress.totalOpen} offen
               </span>
             </div>
           </CardHeader>
@@ -91,8 +91,8 @@ export default function DeliveryDetailPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Produkt</TableHead>
-                  <TableHead className="text-right">Geliefert</TableHead>
-                  <TableHead className="text-right">Abgerechnet</TableHead>
+                  <TableHead className="text-right">Erhalten</TableHead>
+                  <TableHead className="text-right">Verkauft</TableHead>
                   <TableHead className="text-right">Retour</TableHead>
                   <TableHead className="text-right">Offen</TableHead>
                   <TableHead className="text-right">Erlös</TableHead>
@@ -170,7 +170,7 @@ export default function DeliveryDetailPage() {
                 <Badge variant={DELIVERY_STATUS_VARIANTS[delivery.status]}>{DELIVERY_STATUS_LABELS[delivery.status]}</Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Geliefert am</span>
+                <span className="text-muted-foreground">Erhalten am</span>
                 <span>{formatDate(delivery.deliveryDate)}</span>
               </div>
               <div className="flex justify-between">
@@ -183,13 +183,13 @@ export default function DeliveryDetailPage() {
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Abrechnungen</CardTitle>
+                <CardTitle>Verkäufe</CardTitle>
                 {settlements.length > 0 && <Badge variant="secondary">{settlements.length}</Badge>}
               </div>
             </CardHeader>
             <CardContent>
               {settlements.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Noch keine Abrechnung erfasst.</p>
+                <p className="text-sm text-muted-foreground">Noch kein Verkauf erfasst.</p>
               ) : (
                 <div className="space-y-2">
                   {settlements.map((s, i) => {
@@ -197,7 +197,7 @@ export default function DeliveryDetailPage() {
                     return (
                       <div key={s.id} className="flex items-center justify-between rounded-lg border p-3">
                         <div>
-                          <p className="text-sm font-medium">Abrechnung {i + 1} · {formatDate(s.settledAt)}</p>
+                          <p className="text-sm font-medium">Verkauf {i + 1} · {formatDate(s.settledAt)}</p>
                           <p className="text-xs text-muted-foreground">{qty} Stück verkauft</p>
                         </div>
                         <div className="flex items-center gap-3">

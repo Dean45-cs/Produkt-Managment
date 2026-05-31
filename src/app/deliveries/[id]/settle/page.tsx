@@ -115,19 +115,19 @@ export default function SettlePage() {
   return (
     <div>
       <PageHeader
-        title={hasPriorSettlements ? 'Weitere Teilabrechnung' : 'Lieferung abrechnen'}
-        description={`Lieferung an ${delivery.supplier?.name}`}
+        title={hasPriorSettlements ? 'Weiteren Verkauf erfassen' : 'Verkauf erfassen'}
+        description={`Lieferung von ${delivery.supplier?.name}`}
       />
 
       {items.length === 0 ? (
         <Card><CardContent className="py-8 text-center text-muted-foreground">
-          Es sind keine offenen Mengen mehr vorhanden — diese Lieferung ist vollständig abgerechnet.
+          Es sind keine offenen Mengen mehr vorhanden — diese Lieferung ist vollständig verkauft.
         </CardContent></Card>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
           {hasPriorSettlements && (
             <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-              Diese Lieferung wurde bereits teilweise abgerechnet. Trage hier nur die <strong>jetzt zusätzlich</strong> verkauften Mengen ein.
+              Von dieser Lieferung wurde bereits ein Teil verkauft. Trage hier nur die <strong>jetzt zusätzlich</strong> verkauften Mengen ein.
               Offen gesamt: <strong>{progress.totalOpen} Stück</strong>.
             </div>
           )}
@@ -150,8 +150,8 @@ export default function SettlePage() {
             <CardHeader><CardTitle>Verkaufte Mengen & Beträge</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Trage ein, wie viele Stück dein Distributor diesmal verkauft hat und den dafür erhaltenen Gesamtbetrag.
-                Nicht verkaufte Stück bleiben offen und können später abgerechnet werden.
+                Trage ein, wie viele Stück diesmal verkauft wurden und den dafür erhaltenen Gesamtbetrag.
+                Der Bestand wird entsprechend reduziert. Nicht verkaufte Stück bleiben offen und können später erfasst werden.
               </p>
               {items.map((item, idx) => {
                 const avgPriceCt = item.quantitySold > 0 ? euroToCents(item.totalAmount) / item.quantitySold : 0
@@ -212,8 +212,8 @@ export default function SettlePage() {
               </div>
               <p className="text-xs text-muted-foreground">
                 {settlesEverythingOpen
-                  ? 'Damit wird die Lieferung vollständig abgerechnet.'
-                  : `Nach dieser Abrechnung bleiben ${progress.totalOpen - totalSoldQty} Stück offen.`}
+                  ? 'Damit ist die Lieferung vollständig verkauft.'
+                  : `Nach diesem Verkauf bleiben ${progress.totalOpen - totalSoldQty} Stück offen.`}
               </p>
             </CardContent>
           </Card>
@@ -221,7 +221,7 @@ export default function SettlePage() {
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <Button type="submit" disabled={mutation.isPending || totalAmountCt === 0}>
-            {mutation.isPending ? 'Speichern...' : 'Abrechnung speichern'}
+            {mutation.isPending ? 'Speichern...' : 'Verkauf speichern'}
           </Button>
         </form>
       )}

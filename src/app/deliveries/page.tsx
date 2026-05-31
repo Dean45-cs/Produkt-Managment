@@ -32,7 +32,7 @@ export default function DeliveriesPage() {
     <div>
       <PageHeader
         title="Lieferungen"
-        description="Lieferungen an Distributoren"
+        description="Wareneingänge und Verkäufe verwalten"
         actions={
           <Link href="/deliveries/new">
             <Button><Plus className="h-4 w-4" /> Neue Lieferung</Button>
@@ -48,8 +48,8 @@ export default function DeliveriesPage() {
                 <TableHead>Erstellt</TableHead>
                 <TableHead>Lieferant</TableHead>
                 <TableHead>Produkte</TableHead>
-                <TableHead>Geliefert am</TableHead>
-                <TableHead className="text-right">Abgerechnet</TableHead>
+                <TableHead>Erhalten am</TableHead>
+                <TableHead className="text-right">Verkauft</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead></TableHead>
               </TableRow>

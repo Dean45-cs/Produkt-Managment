@@ -76,7 +76,7 @@ export default function NewDeliveryPage() {
 
   return (
     <div>
-      <PageHeader title="Neue Lieferung" description="Lieferung an Distributor anlegen" />
+      <PageHeader title="Neue Lieferung" description="Wareneingang erfassen — beim Markieren als erhalten wird der Bestand erhöht" />
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
         <Card>
