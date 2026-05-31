@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus, Trash2 } from 'lucide-react'
 import { apiFetch, jsonInit } from '@/lib/api'
 import { toast } from '@/lib/toast'
+import { formatDate } from '@/lib/utils'
 
 interface ReturnItem {
   productId: string
@@ -28,7 +29,7 @@ export default function NewReturnPage() {
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<ReturnItem[]>([{ productId: '', locationId: '', quantityReturned: 1 }])
 
-  const { data: deliveries = [] } = useQuery<Array<{ id: string; supplier: { name: string }; createdAt: string }>>({
+  const { data: deliveries = [] } = useQuery<Array<{ id: string; supplier: { name: string }; createdAt: string; status: string }>>({
     queryKey: ['deliveries'],
     queryFn: () => fetch('/api/deliveries').then((r) => r.json()),
   })
@@ -84,7 +85,7 @@ export default function NewReturnPage() {
                   <SelectContent>
                     <SelectItem value="none">Keine Angabe</SelectItem>
                     {deliveries.map((d) => (
-                      <SelectItem key={d.id} value={d.id}>{d.supplier.name} ({d.id.slice(0, 8)})</SelectItem>
+                      <SelectItem key={d.id} value={d.id}>{d.supplier.name} · {formatDate(d.createdAt)}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>

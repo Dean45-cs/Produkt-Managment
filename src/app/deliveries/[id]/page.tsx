@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
 import { deliveryProgress, DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS } from '@/lib/delivery'
-import { PackageCheck, Truck, Eye } from 'lucide-react'
+import { PackageCheck, Truck, Eye, ArrowLeft } from 'lucide-react'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
@@ -52,6 +52,9 @@ export default function DeliveryDetailPage() {
         description={`Erstellt am ${formatDate(delivery.createdAt)}`}
         actions={
           <div className="flex items-center gap-2">
+            <Link href="/deliveries">
+              <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Zurück</Button>
+            </Link>
             <Badge variant={DELIVERY_STATUS_VARIANTS[delivery.status]}>{DELIVERY_STATUS_LABELS[delivery.status]}</Badge>
             {delivery.status === 'PENDING' && (
               <Button onClick={() => markDeliveredMutation.mutate()} disabled={markDeliveredMutation.isPending}>
@@ -68,6 +71,17 @@ export default function DeliveryDetailPage() {
           </div>
         }
       />
+
+      {/* Nächster Schritt-Hinweis */}
+      {delivery.status === 'PENDING' && (
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+          <Truck className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
+          <div>
+            <p className="font-semibold">Nächster Schritt: Übergabe bestätigen</p>
+            <p className="text-blue-700 mt-0.5">Sobald dein Verkäufer die Ware abgeholt hat, klicke auf <strong>„An Verkäufer übergeben"</strong>. Dadurch wird der Bestand sofort reduziert und du kannst später Verkäufe erfassen.</p>
+          </div>
+        </div>
+      )}
 
       {/* Fortschritt der Abrechnung */}
       {delivery.status !== 'PENDING' && (

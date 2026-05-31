@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -37,6 +38,7 @@ interface PurchaseOrder {
 }
 
 export default function PurchaseOrdersPage() {
+  const router = useRouter()
   const { data: orders = [], isLoading } = useQuery<PurchaseOrder[]>({
     queryKey: ['purchase-orders'],
     queryFn: () => fetch('/api/purchase-orders').then((r) => r.json()),
@@ -45,8 +47,8 @@ export default function PurchaseOrdersPage() {
   return (
     <div>
       <PageHeader
-        title="Einkaufsbestellungen"
-        description="Bestellungen zum Auffüllen des Bestands"
+        title="Einkauf beim Großhändler"
+        description="Ware einkaufen → beim Wareneingang ('Erhalten') steigt dein Lagerbestand"
         actions={
           <Link href="/purchase-orders/new">
             <Button><Plus className="h-4 w-4" /> Neue Bestellung</Button>
@@ -73,7 +75,7 @@ export default function PurchaseOrdersPage() {
               ) : orders.length === 0 ? (
                 <TableRow><TableCell colSpan={6} className="text-center py-8 text-muted-foreground">Noch keine Bestellungen</TableCell></TableRow>
               ) : orders.map((o) => (
-                <TableRow key={o.id}>
+                <TableRow key={o.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/purchase-orders/${o.id}`)}>
                   <TableCell>{formatDate(o.createdAt)}</TableCell>
                   <TableCell>{o.supplier?.name || '—'}</TableCell>
                   <TableCell>{o.items.length} Pos. / {o.items.reduce((s, i) => s + i.quantityOrdered, 0)} Stück</TableCell>
@@ -82,9 +84,7 @@ export default function PurchaseOrdersPage() {
                     <Badge variant={STATUS_VARIANTS[o.status]}>{STATUS_LABELS[o.status]}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Link href={`/purchase-orders/${o.id}`}>
-                      <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                    </Link>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ))}

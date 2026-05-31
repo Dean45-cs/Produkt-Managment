@@ -2,6 +2,7 @@
 
 import { useQuery } from '@tanstack/react-query'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Card, CardContent } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -21,6 +22,7 @@ interface Settlement {
 }
 
 export default function SettlementsPage() {
+  const router = useRouter()
   const { data: settlements = [], isLoading } = useQuery<Settlement[]>({
     queryKey: ['settlements'],
     queryFn: () => fetch('/api/settlements').then((r) => r.json()),
@@ -60,20 +62,18 @@ export default function SettlementsPage() {
                 const { profit, marginPct } = calcProfit(s.totalAmountCt, totalQty, totalCost / Math.max(totalQty, 1))
 
                 return (
-                  <TableRow key={s.id}>
+                  <TableRow key={s.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/settlements/${s.id}`)}>
                     <TableCell>{formatDate(s.settledAt)}</TableCell>
                     <TableCell className="font-medium">{s.delivery.supplier.name}</TableCell>
                     <TableCell>{s.items.length} Pos. / {totalQty} Stück</TableCell>
-                    <TableCell className="font-medium text-rose-600">{centsToEuro(s.totalAmountCt)}</TableCell>
-                    <TableCell>{centsToEuro(totalCost)}</TableCell>
+                    <TableCell className="font-medium text-green-600">{centsToEuro(s.totalAmountCt)}</TableCell>
+                    <TableCell className="text-muted-foreground">{centsToEuro(totalCost)}</TableCell>
                     <TableCell className={profit >= 0 ? 'text-green-600 font-medium' : 'text-red-600 font-medium'}>
                       {centsToEuro(profit)}
                     </TableCell>
                     <TableCell>{marginPct.toFixed(1)}%</TableCell>
                     <TableCell>
-                      <Link href={`/settlements/${s.id}`}>
-                        <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                      </Link>
+                      <Eye className="h-4 w-4 text-muted-foreground" />
                     </TableCell>
                   </TableRow>
                 )

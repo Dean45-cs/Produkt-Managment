@@ -1,6 +1,7 @@
 'use client'
 
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ interface Delivery {
 }
 
 export default function DeliveriesPage() {
+  const router = useRouter()
   const { data: deliveries = [], isLoading } = useQuery<Delivery[]>({
     queryKey: ['deliveries'],
     queryFn: () => fetch('/api/deliveries').then((r) => r.json()),
@@ -62,7 +64,7 @@ export default function DeliveriesPage() {
               ) : deliveries.map((d) => {
                 const settledSum = (d.settlements || []).reduce((s, x) => s + x.totalAmountCt, 0)
                 return (
-                <TableRow key={d.id}>
+                <TableRow key={d.id} className="cursor-pointer hover:bg-muted/50" onClick={() => router.push(`/deliveries/${d.id}`)}>
                   <TableCell className="text-sm">{formatDate(d.createdAt)}</TableCell>
                   <TableCell className="font-medium">{d.supplier.name}</TableCell>
                   <TableCell>
@@ -71,14 +73,12 @@ export default function DeliveriesPage() {
                     </div>
                   </TableCell>
                   <TableCell className="text-sm">{formatDate(d.deliveryDate)}</TableCell>
-                  <TableCell className="text-right text-sm">{settledSum > 0 ? centsToEuro(settledSum) : '—'}</TableCell>
+                  <TableCell className="text-right text-sm">{settledSum > 0 ? <span className="text-green-600 font-medium">{centsToEuro(settledSum)}</span> : '—'}</TableCell>
                   <TableCell>
                     <Badge variant={DELIVERY_STATUS_VARIANTS[d.status]}>{DELIVERY_STATUS_LABELS[d.status]}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Link href={`/deliveries/${d.id}`}>
-                      <Button variant="ghost" size="icon"><Eye className="h-4 w-4" /></Button>
-                    </Link>
+                    <Eye className="h-4 w-4 text-muted-foreground" />
                   </TableCell>
                 </TableRow>
                 )

@@ -54,7 +54,7 @@ export default function ProductsPage() {
     <div>
       <PageHeader
         title="Produkte"
-        description="Alle Produkte verwalten"
+        description="Hier verwaltest du dein Sortiment — EK-Preis, Mindestbestand und Nachbestellpunkt"
         actions={
           <>
             <ExportButton href="/api/export/products" />

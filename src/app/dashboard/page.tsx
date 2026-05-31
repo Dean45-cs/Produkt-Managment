@@ -128,6 +128,39 @@ export default function DashboardPage() {
         </Link>
       ) : null}
 
+      {/* Workflow-Leitfaden */}
+      <div className="mb-6 rounded-lg border bg-card overflow-hidden">
+        <div className="px-4 py-2.5 border-b bg-muted/30">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dein Arbeitsablauf</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x">
+          <div className="px-4 py-3 flex items-start gap-3">
+            <span className="mt-0.5 w-6 h-6 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+            <div>
+              <p className="font-semibold text-sm">Einkauf beim Großhändler</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Ware bestellen → beim Empfang steigt dein Bestand</p>
+              <Link href="/purchase-orders/new" className="mt-1.5 inline-block text-xs text-rose-600 font-medium hover:underline">+ Neue Bestellung →</Link>
+            </div>
+          </div>
+          <div className="px-4 py-3 flex items-start gap-3">
+            <span className="mt-0.5 w-6 h-6 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+            <div>
+              <p className="font-semibold text-sm">Ladung an Verkäufer</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Verkäufer holt Ware ab → Bestand sinkt sofort bei Übergabe</p>
+              <Link href="/deliveries/new" className="mt-1.5 inline-block text-xs text-rose-600 font-medium hover:underline">+ Neue Ladung →</Link>
+            </div>
+          </div>
+          <div className="px-4 py-3 flex items-start gap-3">
+            <span className="mt-0.5 w-6 h-6 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+            <div>
+              <p className="font-semibold text-sm">Verkauf abrechnen</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Verkäufer zahlt & meldet Stück → Gewinn wird berechnet</p>
+              <Link href="/deliveries" className="mt-1.5 inline-block text-xs text-rose-600 font-medium hover:underline">Zu den Ladungen →</Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <KpiCard
           title="Bestandswert"
@@ -148,11 +181,11 @@ export default function DashboardPage() {
           variant={data?.monthProfit && data.monthProfit > 0 ? 'success' : 'danger'}
         />
         <KpiCard
-          title="Offene Abrechnungen"
+          title="Offene Ladungen"
           value={String(data?.pendingDeliveriesCount || 0)}
           icon={Truck}
           variant={data?.pendingDeliveriesCount ? 'warning' : 'default'}
-          sub="Lieferungen noch nicht abgerechnet"
+          sub="Noch nicht vollständig abgerechnet"
         />
       </div>
 
@@ -220,13 +253,15 @@ export default function DashboardPage() {
             ) : (
               <div className="space-y-2">
                 {data.pendingDeliveries.map((d) => (
-                  <div key={d.id} className="flex items-center justify-between text-sm p-2 rounded bg-yellow-50 border border-yellow-200">
-                    <div>
-                      <p className="font-medium">{d.supplier.name}</p>
-                      <p className="text-xs text-muted-foreground">{formatDate(d.createdAt)} · {d.items.reduce((s, i) => s + i.quantitySent, 0)} Stück</p>
+                  <Link key={d.id} href={`/deliveries/${d.id}`}>
+                    <div className="flex items-center justify-between text-sm p-2 rounded bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-colors cursor-pointer">
+                      <div>
+                        <p className="font-medium">{d.supplier.name}</p>
+                        <p className="text-xs text-muted-foreground">{formatDate(d.createdAt)} · {d.items.reduce((s, i) => s + i.quantitySent, 0)} Stück</p>
+                      </div>
+                      <Badge variant="warning">Abrechnen →</Badge>
                     </div>
-                    <Badge variant="warning">Offen</Badge>
-                  </div>
+                  </Link>
                 ))}
               </div>
             )}
