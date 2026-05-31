@@ -16,6 +16,7 @@ import {
   BarChart3,
   RotateCcw,
   Users,
+  Coins,
   Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -37,6 +38,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/deliveries', label: 'Ladungen', icon: Truck },
       { href: '/settlements', label: 'Abrechnungen', icon: PackageCheck },
+      { href: '/receivables', label: 'Offene Posten', icon: Coins },
       { href: '/returns', label: 'Retouren', icon: RotateCcw },
     ],
   },

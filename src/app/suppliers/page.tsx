@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { EmptyState } from '@/components/ui/empty-state'
+import Link from 'next/link'
 import { Plus, Pencil, Trash2, Users } from 'lucide-react'
 import { apiFetch, jsonInit } from '@/lib/api'
 import { toast } from '@/lib/toast'
@@ -139,7 +140,9 @@ export default function SuppliersPage() {
               <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
             ) : suppliers.map((s) => (
               <TableRow key={s.id}>
-                <TableCell className="font-medium">{s.name}</TableCell>
+                <TableCell className="font-medium">
+                  <Link href={`/suppliers/${s.id}`} className="text-rose-600 hover:underline">{s.name}</Link>
+                </TableCell>
                 <TableCell>{s.contactName || '—'}</TableCell>
                 <TableCell>{s.email || '—'}</TableCell>
                 <TableCell>{s.phone || '—'}</TableCell>

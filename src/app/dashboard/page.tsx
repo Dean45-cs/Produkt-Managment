@@ -77,10 +77,20 @@ function KpiCard({
   )
 }
 
+interface ReceivablesSummary {
+  totalOpenValueCt: number
+  overdueCount: number
+}
+
 export default function DashboardPage() {
   const { data, isLoading } = useQuery<DashboardData>({
     queryKey: ['dashboard'],
     queryFn: () => fetch('/api/dashboard').then((r) => r.json()),
+    refetchInterval: 30_000,
+  })
+  const { data: receivables } = useQuery<ReceivablesSummary>({
+    queryKey: ['receivables'],
+    queryFn: () => fetch('/api/receivables').then((r) => r.json()),
     refetchInterval: 30_000,
   })
 
@@ -107,6 +117,23 @@ export default function DashboardPage() {
   return (
     <div>
       <PageHeader title="Dashboard" description="Übersicht über Bestand, Umsatz und offene Posten" />
+
+      {receivables?.overdueCount ? (
+        <Link
+          href="/receivables"
+          className="flex items-center gap-3 mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 hover:bg-red-100 transition-colors"
+        >
+          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
+          <div className="flex-1">
+            <span className="font-semibold">{receivables.overdueCount} überfällige Ladung{receivables.overdueCount === 1 ? '' : 'en'}</span>
+            {' '}— länger als 3 Tage bei Verkäufern, noch nicht abgerechnet
+            {receivables.totalOpenValueCt > 0 && (
+              <span className="text-red-700"> · {centsToEuro(receivables.totalOpenValueCt)} insgesamt unterwegs</span>
+            )}
+          </div>
+          <span className="font-medium underline whitespace-nowrap">Offene Posten →</span>
+        </Link>
+      ) : null}
 
       {data?.lowStockCount ? (
         <Link
