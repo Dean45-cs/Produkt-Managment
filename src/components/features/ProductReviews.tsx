@@ -122,8 +122,8 @@ export function ProductReviews({ productId }: { productId: string }) {
           <>
             <div className="flex flex-col sm:flex-row gap-6 mb-6">
               {/* Durchschnitt */}
-              <div className="flex flex-col items-center justify-center px-6 py-3 rounded-lg bg-amber-50 border border-amber-100">
-                <span className="text-4xl font-bold text-amber-500">{avg.toFixed(1)}</span>
+              <div className="flex flex-col items-center justify-center px-6 py-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                <span className="text-4xl font-bold text-amber-400">{avg.toFixed(1)}</span>
                 <StarRating value={avg} size={18} />
                 <span className="text-xs text-muted-foreground mt-1">{count} {count === 1 ? 'Bewertung' : 'Bewertungen'}</span>
               </div>
@@ -135,7 +135,7 @@ export function ProductReviews({ productId }: { productId: string }) {
                   return (
                     <div key={d.star} className="flex items-center gap-2 text-sm">
                       <span className="w-10 text-right text-muted-foreground">{d.star} ★</span>
-                      <div className="flex-1 h-2.5 rounded-full bg-neutral-100 overflow-hidden">
+                      <div className="flex-1 h-2.5 rounded-full bg-muted overflow-hidden">
                         <div className="h-full bg-amber-400" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="w-8 text-right text-muted-foreground">{d.n}</span>

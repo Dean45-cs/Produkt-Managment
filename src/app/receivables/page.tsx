@@ -36,10 +36,10 @@ function Kpi({ icon: Icon, label, value, sub, tone = 'default' }: {
   icon: ElementType; label: string; value: React.ReactNode; sub?: React.ReactNode
   tone?: 'default' | 'green' | 'red' | 'amber' | 'rose'
 }) {
-  const toneColor = { default: 'text-neutral-900', green: 'text-emerald-600', red: 'text-red-600', amber: 'text-amber-600', rose: 'text-rose-600' }[tone]
-  const iconBg = { default: 'bg-neutral-100 text-neutral-500', green: 'bg-emerald-50 text-emerald-600', red: 'bg-red-50 text-red-600', amber: 'bg-amber-50 text-amber-600', rose: 'bg-rose-50 text-rose-600' }[tone]
+  const toneColor = { default: 'text-foreground', green: 'text-emerald-400', red: 'text-red-400', amber: 'text-amber-400', rose: 'text-rose-400' }[tone]
+  const iconBg = { default: 'bg-muted text-muted-foreground', green: 'bg-emerald-500/15 text-emerald-400', red: 'bg-red-500/15 text-red-400', amber: 'bg-amber-500/15 text-amber-400', rose: 'bg-rose-500/15 text-rose-400' }[tone]
   return (
-    <Card><CardContent className="pt-5">
+    <Card className="hover-lift animate-fade-up"><CardContent className="pt-5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{label}</p>
@@ -95,7 +95,7 @@ export default function ReceivablesPage() {
       ) : (
         <div className="space-y-4">
           {data.suppliers.map((s) => (
-            <Card key={s.supplierId} className={s.overdue ? 'border-red-200' : ''}>
+            <Card key={s.supplierId} className={s.overdue ? 'border-red-500/40' : ''}>
               <CardHeader>
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <CardTitle className="flex items-center gap-2">
@@ -113,7 +113,7 @@ export default function ReceivablesPage() {
                 <div className="space-y-2">
                   {s.deliveries.map((d) => (
                     <Link key={d.id} href={`/deliveries/${d.id}`}>
-                      <div className={`flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors ${d.overdue ? 'border-red-200 bg-red-50/40' : ''}`}>
+                      <div className={`flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50 transition-colors ${d.overdue ? 'border-red-500/40 bg-red-500/10' : ''}`}>
                         <div className="flex items-center gap-3">
                           <Badge variant={DELIVERY_STATUS_VARIANTS[d.status]}>{DELIVERY_STATUS_LABELS[d.status]}</Badge>
                           <div>

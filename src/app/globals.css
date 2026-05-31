@@ -4,25 +4,29 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 9%;
+    color-scheme: dark;
+
+    /* Dunkles Rot-Schwarz-Theme ("düster"): fast schwarze Flächen mit
+       feinem warmem Rotstich, kräftiges Rosé-Rot als Akzentfarbe. */
+    --background: 345 18% 5%;
+    --foreground: 0 0% 96%;
+    --card: 345 14% 8%;
+    --card-foreground: 0 0% 96%;
+    --popover: 345 16% 7%;
+    --popover-foreground: 0 0% 96%;
     --primary: 346.8 77.2% 49.8%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 12%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 346 77% 96.5%;
-    --accent-foreground: 346.8 70% 35%;
-    --destructive: 0 72.2% 50.6%;
+    --secondary: 345 10% 14%;
+    --secondary-foreground: 0 0% 96%;
+    --muted: 345 8% 14%;
+    --muted-foreground: 345 8% 62%;
+    --accent: 346 45% 15%;
+    --accent-foreground: 346 90% 88%;
+    --destructive: 0 72% 48%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 90.2%;
-    --input: 0 0% 90.2%;
-    --ring: 346.8 77.2% 49.8%;
+    --border: 345 12% 16%;
+    --input: 345 12% 18%;
+    --ring: 346.8 77.2% 55%;
     --radius: 0.5rem;
   }
 }
@@ -31,17 +35,23 @@
   * {
     @apply border-border;
   }
+  html {
+    color-scheme: dark;
+  }
   body {
     @apply bg-background text-foreground;
     font-family: system-ui, -apple-system, sans-serif;
   }
   ::selection {
-    background-color: hsl(346.8 77.2% 49.8% / 0.25);
+    background-color: hsl(346.8 77.2% 49.8% / 0.3);
   }
 }
 
-/* Schlanke Scrollbar mit dezentem Rot-Akzent */
+/* ---------------------------------------------------------------------------
+   Atmosphäre & Animationen
+   --------------------------------------------------------------------------- */
 @layer utilities {
+  /* Schlanke Scrollbar mit dezentem Rot-Akzent */
   .scrollbar-dark::-webkit-scrollbar {
     width: 6px;
   }
@@ -51,5 +61,58 @@
   .scrollbar-dark::-webkit-scrollbar-thumb {
     background-color: hsl(346.8 77.2% 49.8% / 0.5);
     border-radius: 9999px;
+  }
+
+  /* Feiner roter Lichtschein im Hintergrund für die "düstere" Stimmung */
+  .app-aura {
+    background:
+      radial-gradient(55rem 38rem at 78% -12%, hsl(346 80% 38% / 0.16), transparent 70%),
+      radial-gradient(40rem 30rem at 0% 110%, hsl(346 70% 30% / 0.10), transparent 70%);
+  }
+
+  /* Weicher roter Glanz – z.B. für aktive/markierte Elemente */
+  .glow-rose {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 8px 30px -10px hsl(var(--primary) / 0.45);
+  }
+
+  /* Sanftes Anheben bei Hover (für Kacheln & klickbare Karten) */
+  .hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    border-color: hsl(var(--primary) / 0.45);
+    box-shadow: 0 14px 34px -16px hsl(var(--primary) / 0.5);
+  }
+}
+
+/* Eintritts-Animationen respektieren reduzierte Bewegung */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-in,
+  .animate-glow {
+    animation: none !important;
+  }
+  .hover-lift {
+    transition: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Recharts an das dunkle Theme anpassen (Achsen, Raster, Legende)
+   --------------------------------------------------------------------------- */
+@layer base {
+  .recharts-cartesian-axis-tick-value {
+    fill: hsl(var(--muted-foreground));
+  }
+  .recharts-cartesian-grid line {
+    stroke: hsl(var(--border));
+  }
+  .recharts-cartesian-axis-line,
+  .recharts-cartesian-axis-tick-line {
+    stroke: hsl(var(--border));
+  }
+  .recharts-legend-item-text {
+    color: hsl(var(--foreground)) !important;
   }
 }

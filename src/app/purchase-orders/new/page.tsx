@@ -84,8 +84,8 @@ export default function NewPurchaseOrderPage() {
       <PageHeader title="Neue Einkaufsbestellung" description="Ware beim Großhändler bestellen. Beim Wareneingang ('Erhalten') steigt dein Bestand." />
 
       {products.length === 0 && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-400" />
           <div>
             <p className="font-semibold">Du hast noch keine Produkte angelegt</p>
             <p className="mt-0.5">
@@ -127,7 +127,7 @@ export default function NewPurchaseOrderPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {items.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-4 gap-3 items-end p-3 rounded-lg border bg-gray-50">
+              <div key={idx} className="grid grid-cols-4 gap-3 items-end p-3 rounded-lg border bg-muted/40">
                 <div className="col-span-2 space-y-1.5">
                   <Label>Produkt</Label>
                   <Select value={item.productId} onValueChange={(v) => {

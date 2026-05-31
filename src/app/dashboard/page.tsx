@@ -62,7 +62,7 @@ function KpiCard({
     danger: 'text-red-600',
   }
   return (
-    <Card>
+    <Card className="hover-lift animate-fade-up">
       <CardContent className="pt-6">
         <div className="flex items-start justify-between">
           <div>
@@ -100,7 +100,7 @@ export default function DashboardPage() {
         <PageHeader title="Dashboard" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => (
-            <Card key={i}><CardContent className="pt-6 h-24 animate-pulse bg-gray-100 rounded" /></Card>
+            <Card key={i}><CardContent className="pt-6 h-24 animate-pulse bg-muted rounded" /></Card>
           ))}
         </div>
       </div>
@@ -121,14 +121,14 @@ export default function DashboardPage() {
       {receivables?.overdueCount ? (
         <Link
           href="/receivables"
-          className="flex items-center gap-3 mb-4 rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-900 hover:bg-red-100 transition-colors"
+          className="flex items-center gap-3 mb-4 rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200 hover:bg-red-500/20 transition-colors animate-fade-up"
         >
-          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
+          <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0" />
           <div className="flex-1">
             <span className="font-semibold">{receivables.overdueCount} überfällige Ladung{receivables.overdueCount === 1 ? '' : 'en'}</span>
             {' '}— länger als 3 Tage bei Verkäufern, noch nicht abgerechnet
             {receivables.totalOpenValueCt > 0 && (
-              <span className="text-red-700"> · {centsToEuro(receivables.totalOpenValueCt)} insgesamt unterwegs</span>
+              <span className="text-red-300"> · {centsToEuro(receivables.totalOpenValueCt)} insgesamt unterwegs</span>
             )}
           </div>
           <span className="font-medium underline whitespace-nowrap">Offene Posten →</span>
@@ -138,14 +138,14 @@ export default function DashboardPage() {
       {data?.lowStockCount ? (
         <Link
           href="/products"
-          className="flex items-center gap-3 mb-6 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-sm text-yellow-900 hover:bg-yellow-100 transition-colors"
+          className="flex items-center gap-3 mb-6 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 hover:bg-amber-500/20 transition-colors animate-fade-up"
         >
-          <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0" />
+          <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0" />
           <div className="flex-1">
             <span className="font-semibold">{data.lowStockCount} Produkt{data.lowStockCount === 1 ? '' : 'e'}</span>
             {' '}unter dem Nachbestellpunkt
             {data.lowStockProducts.length > 0 && (
-              <span className="text-yellow-700">
+              <span className="text-amber-300/80">
                 {' '}— z.B. {data.lowStockProducts.slice(0, 3).map((p) => p.name).join(', ')}
                 {data.lowStockProducts.length > 3 ? ` +${data.lowStockProducts.length - 3} weitere` : ''}
               </span>
@@ -281,7 +281,7 @@ export default function DashboardPage() {
               <div className="space-y-2">
                 {data.pendingDeliveries.map((d) => (
                   <Link key={d.id} href={`/deliveries/${d.id}`}>
-                    <div className="flex items-center justify-between text-sm p-2 rounded bg-yellow-50 border border-yellow-200 hover:bg-yellow-100 transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between text-sm p-2 rounded bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/20 transition-colors cursor-pointer">
                       <div>
                         <p className="font-medium">{d.supplier.name}</p>
                         <p className="text-xs text-muted-foreground">{formatDate(d.createdAt)} · {d.items.reduce((s, i) => s + i.quantitySent, 0)} Stück</p>
@@ -305,7 +305,7 @@ export default function DashboardPage() {
                 {data.topProducts.map((p, i) => (
                   <div key={i} className="flex items-center justify-between text-sm">
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-700 text-xs flex items-center justify-center font-bold">{i + 1}</span>
+                      <span className="w-5 h-5 rounded-full bg-rose-500/15 text-rose-300 text-xs flex items-center justify-center font-bold">{i + 1}</span>
                       <span>{p.name}</span>
                     </div>
                     <div className="text-right">

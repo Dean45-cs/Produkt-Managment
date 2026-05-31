@@ -86,8 +86,8 @@ export default function NewDeliveryPage() {
       <PageHeader title="Neue Ladung an Verkäufer" description="Lege fest, welche Ware ein Verkäufer mitnimmt. Beim Übergeben verlässt sie dein Lager (Bestand sinkt)." />
 
       {missing.length > 0 && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
-          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-600" />
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+          <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0 text-amber-400" />
           <div>
             <p className="font-semibold">Bevor du eine Ladung anlegen kannst, fehlt noch etwas:</p>
             <ul className="mt-1 space-y-0.5">
@@ -135,7 +135,7 @@ export default function NewDeliveryPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {items.map((item, idx) => (
-              <div key={idx} className="p-3 rounded-lg border bg-gray-50 space-y-3">
+              <div key={idx} className="p-3 rounded-lg border bg-muted/40 space-y-3">
                 <div className="grid grid-cols-5 gap-3 items-end">
                   <div className="col-span-2 space-y-1.5">
                     <Label>Produkt</Label>

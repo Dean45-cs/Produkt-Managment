@@ -74,11 +74,11 @@ export default function DeliveryDetailPage() {
 
       {/* Nächster Schritt-Hinweis */}
       {delivery.status === 'PENDING' && (
-        <div className="mb-6 flex items-start gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
-          <Truck className="h-4 w-4 mt-0.5 flex-shrink-0 text-blue-600" />
+        <div className="mb-6 flex items-start gap-3 rounded-lg border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-200">
+          <Truck className="h-4 w-4 mt-0.5 flex-shrink-0 text-sky-400" />
           <div>
             <p className="font-semibold">Nächster Schritt: Übergabe bestätigen</p>
-            <p className="text-blue-700 mt-0.5">Sobald dein Verkäufer die Ware abgeholt hat, klicke auf <strong>„An Verkäufer übergeben"</strong>. Dadurch wird der Bestand sofort reduziert und du kannst später Verkäufe erfassen.</p>
+            <p className="text-sky-300/80 mt-0.5">Sobald dein Verkäufer die Ware abgeholt hat, klicke auf <strong>„An Verkäufer übergeben"</strong>. Dadurch wird der Bestand sofort reduziert und du kannst später Verkäufe erfassen.</p>
           </div>
         </div>
       )}
@@ -95,7 +95,7 @@ export default function DeliveryDetailPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="h-3 w-full rounded-full bg-neutral-100 overflow-hidden mb-4">
+            <div className="h-3 w-full rounded-full bg-muted overflow-hidden mb-4">
               <div
                 className="h-full bg-rose-600 transition-all"
                 style={{ width: `${progress.totalSent > 0 ? ((progress.totalSettled + progress.totalReturned) / progress.totalSent) * 100 : 0}%` }}

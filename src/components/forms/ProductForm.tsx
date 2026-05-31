@@ -108,7 +108,7 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
       <div className="space-y-1.5">
         <Label>Produktbild</Label>
         <div className="flex items-center gap-4">
-          <div className="h-20 w-20 rounded-md border bg-gray-50 overflow-hidden flex items-center justify-center flex-shrink-0">
+          <div className="h-20 w-20 rounded-md border bg-muted overflow-hidden flex items-center justify-center flex-shrink-0">
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={imageUrl} alt="Vorschau" className="h-full w-full object-cover" />

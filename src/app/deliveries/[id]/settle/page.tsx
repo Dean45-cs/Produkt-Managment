@@ -126,7 +126,7 @@ export default function SettlePage() {
       ) : (
         <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
           {hasPriorSettlements && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
               Von dieser Ladung wurde bereits ein Teil abgerechnet. Trage hier nur die <strong>jetzt zusätzlich</strong> verkauften Mengen ein.
               Offen gesamt: <strong>{progress.totalOpen} Stück</strong>.
             </div>
@@ -156,7 +156,7 @@ export default function SettlePage() {
               {items.map((item, idx) => {
                 const avgPriceCt = item.quantitySold > 0 ? euroToCents(item.totalAmount) / item.quantitySold : 0
                 return (
-                  <div key={item.productId} className="p-4 rounded-lg border bg-neutral-50">
+                  <div key={item.productId} className="p-4 rounded-lg border bg-muted/40">
                     <div className="flex items-center justify-between mb-3">
                       <p className="font-medium">{item.productName}</p>
                       <Badge variant="info">{item.quantityOpen} offen</Badge>

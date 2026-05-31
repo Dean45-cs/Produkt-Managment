@@ -64,14 +64,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   if (status !== 'unlocked') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-neutral-50 text-sm text-muted-foreground">
+      <div className="min-h-screen flex items-center justify-center bg-background text-sm text-muted-foreground">
         Lädt…
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen bg-neutral-50">
+    <div className="relative flex min-h-screen bg-background">
+      <div className="app-aura pointer-events-none fixed inset-0 -z-10" />
       <Sidebar />
       <main className="flex-1 p-6 overflow-auto">{children}</main>
     </div>

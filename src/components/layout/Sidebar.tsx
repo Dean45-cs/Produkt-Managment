@@ -77,10 +77,10 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-60 min-h-screen bg-neutral-950 text-white flex flex-col flex-shrink-0 border-r border-neutral-800">
-      <div className="p-4 border-b border-neutral-800">
+    <aside className="w-60 min-h-screen bg-gradient-to-b from-neutral-950 to-black text-white flex flex-col flex-shrink-0 border-r border-neutral-800/80">
+      <div className="p-4 border-b border-neutral-800/80">
         <h1 className="text-lg font-bold text-white flex items-center gap-2">
-          <span className="inline-block h-5 w-1.5 rounded-full bg-rose-600" />
+          <span className="inline-block h-5 w-1.5 rounded-full bg-rose-600 animate-glow" />
           Produkt Manager
         </h1>
         <p className="text-xs text-neutral-500 mt-1 pl-3.5">Bestand &amp; Verkauf</p>
@@ -102,10 +102,10 @@ export function Sidebar() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      'group flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors',
+                      'group relative flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-all duration-200',
                       isActive
-                        ? 'bg-rose-600 text-white shadow-sm shadow-rose-900/50'
-                        : 'text-neutral-400 hover:bg-neutral-800 hover:text-white'
+                        ? 'bg-rose-600 text-white shadow-lg shadow-rose-950/60 before:absolute before:content-[""] before:left-0 before:top-1.5 before:bottom-1.5 before:w-0.5 before:rounded-full before:bg-white/90'
+                        : 'text-neutral-400 hover:bg-neutral-800/80 hover:text-white hover:translate-x-0.5'
                     )}
                   >
                     <Icon className={cn('h-4 w-4 flex-shrink-0', isActive ? 'text-white' : 'text-neutral-500 group-hover:text-rose-500')} />

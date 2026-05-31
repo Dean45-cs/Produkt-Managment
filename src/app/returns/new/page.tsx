@@ -109,7 +109,7 @@ export default function NewReturnPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             {items.map((item, idx) => (
-              <div key={idx} className="grid grid-cols-4 gap-3 items-end p-3 rounded-lg border bg-gray-50">
+              <div key={idx} className="grid grid-cols-4 gap-3 items-end p-3 rounded-lg border bg-muted/40">
                 <div className="col-span-2 space-y-1.5">
                   <Label>Produkt</Label>
                   <Select value={item.productId} onValueChange={(v) => updateItem(idx, 'productId', v)}>

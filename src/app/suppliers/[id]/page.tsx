@@ -38,10 +38,10 @@ function Kpi({ icon: Icon, label, value, sub, tone = 'default' }: {
   icon: ElementType; label: string; value: React.ReactNode; sub?: React.ReactNode
   tone?: 'default' | 'green' | 'red' | 'amber' | 'rose'
 }) {
-  const toneColor = { default: 'text-neutral-900', green: 'text-emerald-600', red: 'text-red-600', amber: 'text-amber-600', rose: 'text-rose-600' }[tone]
-  const iconBg = { default: 'bg-neutral-100 text-neutral-500', green: 'bg-emerald-50 text-emerald-600', red: 'bg-red-50 text-red-600', amber: 'bg-amber-50 text-amber-600', rose: 'bg-rose-50 text-rose-600' }[tone]
+  const toneColor = { default: 'text-foreground', green: 'text-emerald-400', red: 'text-red-400', amber: 'text-amber-400', rose: 'text-rose-400' }[tone]
+  const iconBg = { default: 'bg-muted text-muted-foreground', green: 'bg-emerald-500/15 text-emerald-400', red: 'bg-red-500/15 text-red-400', amber: 'bg-amber-500/15 text-amber-400', rose: 'bg-rose-500/15 text-rose-400' }[tone]
   return (
-    <Card><CardContent className="pt-5">
+    <Card className="hover-lift animate-fade-up"><CardContent className="pt-5">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-xs text-muted-foreground">{label}</p>
@@ -140,7 +140,7 @@ export default function SupplierDetailPage() {
               </TableHeader>
               <TableBody>
                 {openDeliveries.map((d) => (
-                  <TableRow key={d.id} className={d.overdue ? 'bg-red-50/50' : ''}>
+                  <TableRow key={d.id} className={d.overdue ? 'bg-red-500/10' : ''}>
                     <TableCell className="text-sm">{formatDate(d.deliveryDate || d.createdAt)}</TableCell>
                     <TableCell><Badge variant={DELIVERY_STATUS_VARIANTS[d.status]}>{DELIVERY_STATUS_LABELS[d.status]}</Badge></TableCell>
                     <TableCell className="text-right font-medium text-rose-600">{d.totalOpen} / {d.totalSent}</TableCell>

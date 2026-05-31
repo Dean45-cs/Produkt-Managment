@@ -80,21 +80,21 @@ function Kpi({ icon: Icon, label, value, sub, tone = 'default' }: {
   tone?: 'default' | 'green' | 'red' | 'amber' | 'rose'
 }) {
   const toneColor = {
-    default: 'text-neutral-900',
-    green: 'text-emerald-600',
-    red: 'text-red-600',
-    amber: 'text-amber-600',
-    rose: 'text-rose-600',
+    default: 'text-foreground',
+    green: 'text-emerald-400',
+    red: 'text-red-400',
+    amber: 'text-amber-400',
+    rose: 'text-rose-400',
   }[tone]
   const iconBg = {
-    default: 'bg-neutral-100 text-neutral-500',
-    green: 'bg-emerald-50 text-emerald-600',
-    red: 'bg-red-50 text-red-600',
-    amber: 'bg-amber-50 text-amber-600',
-    rose: 'bg-rose-50 text-rose-600',
+    default: 'bg-muted text-muted-foreground',
+    green: 'bg-emerald-500/15 text-emerald-400',
+    red: 'bg-red-500/15 text-red-400',
+    amber: 'bg-amber-500/15 text-amber-400',
+    rose: 'bg-rose-500/15 text-rose-400',
   }[tone]
   return (
-    <Card>
+    <Card className="hover-lift animate-fade-up">
       <CardContent className="pt-5">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
@@ -301,8 +301,8 @@ export default function AnalyticsPage() {
                     <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
                     <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
                     <Legend />
-                    <Area type="monotone" dataKey="Umsatz kumuliert" stroke="#e11d48" fill="#fecdd3" strokeWidth={2} />
-                    <Area type="monotone" dataKey="Gewinn kumuliert" stroke="#10b981" fill="#bbf7d0" strokeWidth={2} />
+                    <Area type="monotone" dataKey="Umsatz kumuliert" stroke="#e11d48" fill="#e11d48" fillOpacity={0.18} strokeWidth={2} />
+                    <Area type="monotone" dataKey="Gewinn kumuliert" stroke="#10b981" fill="#10b981" fillOpacity={0.15} strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               )}
@@ -397,7 +397,7 @@ export default function AnalyticsPage() {
                       </thead>
                       <tbody>
                         {suppliers.map((s) => (
-                          <tr key={s.supplierId} className="border-b hover:bg-neutral-50">
+                          <tr key={s.supplierId} className="border-b hover:bg-muted/50">
                             <td className="py-2 px-2 font-medium">{s.name}</td>
                             <td className="py-2 px-2 text-right font-medium">{euro(s.revenue)}</td>
                             <td className={`py-2 px-2 text-right ${s.profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>{euro(s.profit)}</td>
@@ -472,7 +472,7 @@ export default function AnalyticsPage() {
                     </thead>
                     <tbody>
                       {insights.abc.slice(0, 20).map((p) => (
-                        <tr key={p.id} className="border-b hover:bg-neutral-50">
+                        <tr key={p.id} className="border-b hover:bg-muted/50">
                           <td className="py-2 px-2"><Badge variant={abcBadge[p.class]}>{p.class}</Badge></td>
                           <td className="py-2 px-2 font-medium"><Link href={`/products/${p.id}`} className="text-rose-600 hover:underline">{p.name}</Link></td>
                           <td className="py-2 px-2 text-right">{euro(p.revenue)}</td>
@@ -561,14 +561,14 @@ export default function AnalyticsPage() {
                     </thead>
                     <tbody>
                       {products.map((p) => (
-                        <tr key={p.id} className="border-b hover:bg-neutral-50">
+                        <tr key={p.id} className="border-b hover:bg-muted/50">
                           <td className="py-2 px-2">
                             <Link href={`/products/${p.id}`} className="flex items-center gap-2 font-medium text-rose-600 hover:underline">
                               {p.imageUrl ? (
                                 // eslint-disable-next-line @next/next/no-img-element
                                 <img src={p.imageUrl} alt={p.name} className="h-7 w-7 rounded object-cover border" />
                               ) : (
-                                <span className="h-7 w-7 rounded bg-neutral-100 border flex items-center justify-center text-neutral-300"><Package className="h-3.5 w-3.5" /></span>
+                                <span className="h-7 w-7 rounded bg-muted border flex items-center justify-center text-muted-foreground"><Package className="h-3.5 w-3.5" /></span>
                               )}
                               {p.name}
                             </Link>
@@ -669,7 +669,7 @@ export default function AnalyticsPage() {
                       </thead>
                       <tbody>
                         {insights.reorderList.map((p) => (
-                          <tr key={p.id} className="border-b hover:bg-neutral-50">
+                          <tr key={p.id} className="border-b hover:bg-muted/50">
                             <td className="py-2 px-2 font-medium"><Link href={`/products/${p.id}`} className="text-rose-600 hover:underline">{p.name}</Link></td>
                             <td className="py-2 px-2 text-right text-red-600 font-medium">{p.stock}</td>
                             <td className="py-2 px-2 text-right">{p.reorderPoint}</td>
@@ -704,7 +704,7 @@ export default function AnalyticsPage() {
                       </thead>
                       <tbody>
                         {insights.deadStock.map((p) => (
-                          <tr key={p.id} className="border-b hover:bg-neutral-50">
+                          <tr key={p.id} className="border-b hover:bg-muted/50">
                             <td className="py-2 px-2 font-medium"><Link href={`/products/${p.id}`} className="text-rose-600 hover:underline">{p.name}</Link></td>
                             <td className="py-2 px-2 text-right">{p.stock}</td>
                             <td className="py-2 px-2 text-right">{euro(p.valueCt)}</td>

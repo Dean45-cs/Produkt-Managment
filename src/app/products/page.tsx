@@ -118,7 +118,7 @@ export default function ProductsPage() {
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={p.imageUrl} alt={p.name} className="h-8 w-8 rounded object-cover border" />
                       ) : (
-                        <div className="h-8 w-8 rounded bg-gray-100 border flex items-center justify-center text-gray-300">
+                        <div className="h-8 w-8 rounded bg-muted border flex items-center justify-center text-muted-foreground">
                           <Package className="h-4 w-4" />
                         </div>
                       )}
