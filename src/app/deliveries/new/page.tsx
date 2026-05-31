@@ -69,24 +69,24 @@ export default function NewDeliveryPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!supplierId) return alert('Bitte Lieferant auswählen')
+    if (!supplierId) return alert('Bitte Verkäufer auswählen')
     if (items.some((i) => !i.productId || !i.locationId)) return alert('Alle Positionen ausfüllen')
     mutation.mutate({ supplierId, notes, items })
   }
 
   return (
     <div>
-      <PageHeader title="Neue Lieferung" description="Wareneingang erfassen — beim Markieren als erhalten wird der Bestand erhöht" />
+      <PageHeader title="Neue Ladung an Verkäufer" description="Lege fest, welche Ware ein Verkäufer mitnimmt. Beim Übergeben verlässt sie dein Lager (Bestand sinkt)." />
 
       <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
         <Card>
           <CardHeader><CardTitle>Allgemein</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Lieferant *</Label>
+              <Label>Verkäufer *</Label>
               <Select value={supplierId} onValueChange={setSupplierId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Lieferant auswählen..." />
+                  <SelectValue placeholder="Verkäufer auswählen..." />
                 </SelectTrigger>
                 <SelectContent>
                   {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
@@ -159,7 +159,7 @@ export default function NewDeliveryPage() {
         </Card>
 
         <Button type="submit" disabled={mutation.isPending}>
-          {mutation.isPending ? 'Speichern...' : 'Lieferung anlegen'}
+          {mutation.isPending ? 'Speichern...' : 'Ladung anlegen'}
         </Button>
       </form>
     </div>

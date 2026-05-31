@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { deliveryProgress } from '@/lib/delivery'
 
 /**
- * Umfangreiche Analyse-Kennzahlen für das Geschäft (Konsignationsmodell).
+ * Umfangreiche Analyse-Kennzahlen für das Geschäft (Verkäufer-Modell).
  * Aggregiert serverseitig alles, was für Entscheidungen nützlich ist:
  * KPIs, Monatstrends, ABC-Analyse, Bestands-/Kategorie-/Standortauswertung,
  * Ladenhüter, Nachbestellungen, offene Forderungen, Margenverteilung.

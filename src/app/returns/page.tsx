@@ -27,7 +27,7 @@ export default function ReturnsPage() {
     <div>
       <PageHeader
         title="Retouren"
-        description="Rücksendungen vom Distributor"
+        description="Ware, die Verkäufer zurückgeben (kommt zurück ins Lager)"
         actions={
           <Link href="/returns/new">
             <Button><Plus className="h-4 w-4" /> Neue Retoure</Button>
@@ -41,7 +41,7 @@ export default function ReturnsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Datum</TableHead>
-                <TableHead>Lieferant</TableHead>
+                <TableHead>Verkäufer</TableHead>
                 <TableHead>Positionen</TableHead>
                 <TableHead>Stück gesamt</TableHead>
                 <TableHead>Notizen</TableHead>

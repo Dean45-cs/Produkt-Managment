@@ -33,15 +33,14 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     if (!delivery) return null
 
     if (delivery.status === DELIVERY_STATUS.PENDING) {
-      throw Object.assign(new Error('Lieferung muss zuerst als geliefert markiert werden'), { statusCode: 400 })
+      throw Object.assign(new Error('Ladung muss zuerst an den Verkäufer übergeben werden'), { statusCode: 400 })
     }
     if (delivery.status === DELIVERY_STATUS.CANCELLED) {
-      throw Object.assign(new Error('Stornierte Lieferung kann nicht abgerechnet werden'), { statusCode: 400 })
+      throw Object.assign(new Error('Stornierte Ladung kann nicht abgerechnet werden'), { statusCode: 400 })
     }
 
     const progress = deliveryProgress(delivery)
     const openByProduct = new Map(progress.perProduct.map((p) => [p.productId, p]))
-    const locByProduct = new Map(delivery.items.map((it) => [it.productId, it.locationId]))
 
     for (const item of items) {
       const p = openByProduct.get(item.productId)
@@ -50,23 +49,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       }
       if (item.quantitySold > p.quantityOpen) {
         throw Object.assign(
-          new Error(`Zu viele Stück für "${p.productName}": offen sind nur ${p.quantityOpen}, verkauft werden sollen ${item.quantitySold}`),
+          new Error(`Zu viele Stück für "${p.productName}": offen sind nur ${p.quantityOpen}, abgerechnet werden sollen ${item.quantitySold}`),
           { statusCode: 400 }
         )
-      }
-      // Verkaufte Ware verlässt das Lager → prüfen, ob genug Bestand vorhanden ist.
-      const locationId = locByProduct.get(item.productId)
-      if (locationId) {
-        const inv = await tx.inventory.findUnique({
-          where: { productId_locationId: { productId: item.productId, locationId } },
-        })
-        const available = inv?.quantity ?? 0
-        if (available < item.quantitySold) {
-          throw Object.assign(
-            new Error(`Nicht genug Bestand für "${p.productName}": verfügbar ${available}, verkauft werden sollen ${item.quantitySold}`),
-            { statusCode: 400 }
-          )
-        }
       }
     }
 
@@ -88,19 +73,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       },
       include: { items: { include: { product: true } } },
     })
-
-    // Bestand abbuchen: die verkauften Stück verlassen das Lager.
-    for (const item of items) {
-      const locationId = locByProduct.get(item.productId)
-      if (!locationId) continue
-      await tx.stockAdjustment.create({
-        data: { productId: item.productId, locationId, delta: -item.quantitySold, reason: 'SALE', note: `Verkauf Lieferung ${id}` },
-      })
-      await tx.inventory.update({
-        where: { productId_locationId: { productId: item.productId, locationId } },
-        data: { quantity: { decrement: item.quantitySold } },
-      })
-    }
 
     const newProgress = deliveryProgress({
       items: delivery.items,

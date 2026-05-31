@@ -78,9 +78,9 @@ export default function NewReturnPage() {
                 <Input type="date" value={returnDate} onChange={(e) => setReturnDate(e.target.value)} />
               </div>
               <div className="space-y-1.5">
-                <Label>Bezugene Lieferung (optional)</Label>
+                <Label>Zugehörige Ladung (optional)</Label>
                 <Select value={deliveryId || 'none'} onValueChange={(v) => setDeliveryId(v === 'none' ? '' : v)}>
-                  <SelectTrigger><SelectValue placeholder="Keine Lieferung" /></SelectTrigger>
+                  <SelectTrigger><SelectValue placeholder="Keine Ladung" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Keine Angabe</SelectItem>
                     {deliveries.map((d) => (

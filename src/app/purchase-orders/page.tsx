@@ -60,7 +60,7 @@ export default function PurchaseOrdersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Erstellt</TableHead>
-                <TableHead>Lieferant</TableHead>
+                <TableHead>Großhändler</TableHead>
                 <TableHead>Positionen</TableHead>
                 <TableHead>Bestellt am</TableHead>
                 <TableHead>Status</TableHead>

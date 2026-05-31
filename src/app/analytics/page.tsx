@@ -159,7 +159,7 @@ export default function AnalyticsPage() {
     <div>
       <PageHeader
         title="Analyse & Forecast"
-        description="Umsatz, Produkte, Lieferanten, Bestand und Kundenzufriedenheit im Detail"
+        description="Umsatz, Produkte, Verkäufer, Bestand und Kundenzufriedenheit im Detail"
       />
 
       <Tabs defaultValue="overview">
@@ -167,7 +167,7 @@ export default function AnalyticsPage() {
           <TabsTrigger value="overview">Übersicht</TabsTrigger>
           <TabsTrigger value="products">Produkte</TabsTrigger>
           <TabsTrigger value="inventory">Bestand</TabsTrigger>
-          <TabsTrigger value="suppliers">Lieferanten</TabsTrigger>
+          <TabsTrigger value="suppliers">Verkäufer</TabsTrigger>
           <TabsTrigger value="reviews">Bewertungen</TabsTrigger>
         </TabsList>
 
@@ -450,7 +450,7 @@ export default function AnalyticsPage() {
             </div>
           )}
 
-          {/* Lieferanten-Vergleich je Produkt */}
+          {/* Verkäufer-Vergleich je Produkt */}
           {(() => {
             const pbs = insights?.productBySupplier
             if (!pbs?.length) return null
@@ -467,9 +467,9 @@ export default function AnalyticsPage() {
             return (
               <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>Lieferanten-Vergleich je Produkt</CardTitle>
+                  <CardTitle>Verkäufer-Vergleich je Produkt</CardTitle>
                   <p className="text-sm text-muted-foreground">
-                    {multiSupplier.length} Produkt{multiSupplier.length !== 1 ? 'e' : ''} werden über mehrere Lieferanten abgerechnet — Preis- und Margenvergleich.
+                    {multiSupplier.length} Produkt{multiSupplier.length !== 1 ? 'e' : ''} werden über mehrere Verkäufer abgerechnet — Preis- und Margenvergleich.
                     Grün markiert = besserer Durchschnittspreis.
                   </p>
                 </CardHeader>
@@ -489,7 +489,7 @@ export default function AnalyticsPage() {
                               {productName}
                             </Link>
                             <span className="text-xs text-muted-foreground">{productSku}</span>
-                            <Badge variant="info" className="ml-auto">{entries.length} Lieferanten</Badge>
+                            <Badge variant="info" className="ml-auto">{entries.length} Verkäufer</Badge>
                           </div>
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                             <ResponsiveContainer width="100%" height={Math.max(140, sorted.length * 52)}>
@@ -509,7 +509,7 @@ export default function AnalyticsPage() {
                               <table className="w-full text-sm">
                                 <thead>
                                   <tr className="border-b">
-                                    <th className="text-left py-1.5 px-2">Lieferant</th>
+                                    <th className="text-left py-1.5 px-2">Verkäufer</th>
                                     <th className="text-right py-1.5 px-2">Ø-Preis</th>
                                     <th className="text-right py-1.5 px-2">Stück</th>
                                     <th className="text-right py-1.5 px-2">Umsatz</th>
@@ -760,13 +760,13 @@ export default function AnalyticsPage() {
         {/* ===================== LIEFERANTEN ===================== */}
         <TabsContent value="suppliers">
           {suppliers.length === 0 ? (
-            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Noch keine Abrechnungsdaten je Lieferant</CardContent></Card>
+            <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">Noch keine Abrechnungsdaten je Verkäufer</CardContent></Card>
           ) : (
             <>
               <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>Ø-Preis je Lieferant</CardTitle>
-                  <p className="text-sm text-muted-foreground">Welcher Distributor zahlt die höheren Durchschnittspreise?</p>
+                  <CardTitle>Ø-Preis je Verkäufer</CardTitle>
+                  <p className="text-sm text-muted-foreground">Welcher Verkäufer erzielt die höchsten Durchschnittspreise?</p>
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={Math.max(200, suppliers.length * 52)}>
@@ -782,13 +782,13 @@ export default function AnalyticsPage() {
               </Card>
 
               <Card>
-                <CardHeader><CardTitle>Lieferanten im Detail</CardTitle></CardHeader>
+                <CardHeader><CardTitle>Verkäufer im Detail</CardTitle></CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b">
-                          <th className="text-left py-2 px-2">Lieferant</th>
+                          <th className="text-left py-2 px-2">Verkäufer</th>
                           <th className="text-right py-2 px-2">Umsatz</th>
                           <th className="text-right py-2 px-2">Gewinn</th>
                           <th className="text-right py-2 px-2">Marge</th>
@@ -824,9 +824,9 @@ export default function AnalyticsPage() {
               {insights?.productBySupplier?.length ? (
                 <Card className="mt-6">
                   <CardHeader>
-                    <CardTitle>Produkte je Lieferant</CardTitle>
+                    <CardTitle>Produkte je Verkäufer</CardTitle>
                     <p className="text-sm text-muted-foreground">
-                      Welche Produkte verkauft jeder Lieferant — Ø-Preis und Marge je Produkt
+                      Welche Produkte verkauft jeder Verkäufer — Ø-Preis und Marge je Produkt
                     </p>
                   </CardHeader>
                   <CardContent>
@@ -834,7 +834,7 @@ export default function AnalyticsPage() {
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="border-b">
-                            <th className="text-left py-2 px-2">Lieferant</th>
+                            <th className="text-left py-2 px-2">Verkäufer</th>
                             <th className="text-left py-2 px-2">Produkt</th>
                             <th className="text-right py-2 px-2">Ø-Preis</th>
                             <th className="text-right py-2 px-2">Stück</th>

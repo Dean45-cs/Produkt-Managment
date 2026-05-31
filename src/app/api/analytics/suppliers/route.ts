@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 /**
- * Lieferanten-/Distributoren-Vergleich: Aggregiert alle Abrechnungspositionen
- * je Lieferant. Zeigt, welcher Distributor die höheren Durchschnittspreise zahlt,
- * inkl. Produktvielfalt, Anzahl Lieferungen und letzter Abrechnung.
+ * Verkäufer-Vergleich: Aggregiert alle Abrechnungspositionen je Verkäufer.
+ * Zeigt, welcher Verkäufer die höchsten Durchschnittspreise erzielt, inkl.
+ * Produktvielfalt, Anzahl Ladungen und letzter Abrechnung.
  */
 export async function GET() {
   const settlements = await prisma.settlement.findMany({

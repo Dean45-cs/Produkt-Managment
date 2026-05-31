@@ -213,10 +213,10 @@ export default function DashboardPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><CardTitle>Offene Lieferungen (noch nicht vollständig abgerechnet)</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Offene Ladungen (noch nicht vollständig abgerechnet)</CardTitle></CardHeader>
           <CardContent>
             {!data?.pendingDeliveries.length ? (
-              <p className="text-sm text-muted-foreground">Keine offenen Lieferungen</p>
+              <p className="text-sm text-muted-foreground">Keine offenen Ladungen</p>
             ) : (
               <div className="space-y-2">
                 {data.pendingDeliveries.map((d) => (

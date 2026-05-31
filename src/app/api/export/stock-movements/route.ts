@@ -10,10 +10,10 @@ const REASON_LABELS: Record<string, string> = {
   EXPIRED: 'Abgelaufen',
   FOUND: 'Gefunden',
   RETURN_FROM_SUPPLIER: 'Retoure',
-  DELIVERY_RECEIVED: 'Wareneingang (Lieferung)',
-  DELIVERY_CANCELLED: 'Storno Lieferung',
-  SALE: 'Verkauf',
-  DELIVERY_SENT: 'Lieferung (alt)',
+  DELIVERY_RECEIVED: 'Wareneingang (alt)',
+  DELIVERY_CANCELLED: 'Storno Ladung',
+  SALE: 'Verkauf (alt)',
+  DELIVERY_SENT: 'An Verkäufer übergeben',
   OTHER: 'Sonstiges',
 }
 

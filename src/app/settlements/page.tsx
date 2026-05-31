@@ -30,7 +30,7 @@ export default function SettlementsPage() {
     <div>
       <PageHeader
         title="Abrechnungen"
-        description="Alle Abrechnungen von Distributoren"
+        description="Verkaufsabrechnungen deiner Verkäufer"
         actions={<ExportButton href="/api/export/settlements" />}
       />
 
@@ -40,7 +40,7 @@ export default function SettlementsPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Datum</TableHead>
-                <TableHead>Lieferant</TableHead>
+                <TableHead>Verkäufer</TableHead>
                 <TableHead>Positionen</TableHead>
                 <TableHead>Umsatz</TableHead>
                 <TableHead>Kosten</TableHead>

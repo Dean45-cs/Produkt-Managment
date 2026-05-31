@@ -33,13 +33,13 @@ export default function DeliveryDetailPage() {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['delivery', id] })
-      toast('Wareneingang gebucht – Bestand erhöht', 'success')
+      toast('Ladung an Verkäufer übergeben – Bestand reduziert', 'success')
     },
     onError: (err: Error) => toast(err.message, 'error'),
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>
-  if (!delivery || delivery.error) return <div className="p-4">Lieferung nicht gefunden</div>
+  if (!delivery || delivery.error) return <div className="p-4">Ladung nicht gefunden</div>
 
   const progress = deliveryProgress(delivery)
   const settlements: Array<{ id: string; settledAt: string; totalAmountCt: number; notes?: string; items: Array<{ quantitySold: number }> }> = delivery.settlements || []
@@ -48,14 +48,14 @@ export default function DeliveryDetailPage() {
   return (
     <div>
       <PageHeader
-        title={`Lieferung an ${delivery.supplier.name}`}
+        title={`Ladung an ${delivery.supplier.name}`}
         description={`Erstellt am ${formatDate(delivery.createdAt)}`}
         actions={
           <div className="flex items-center gap-2">
             <Badge variant={DELIVERY_STATUS_VARIANTS[delivery.status]}>{DELIVERY_STATUS_LABELS[delivery.status]}</Badge>
             {delivery.status === 'PENDING' && (
               <Button onClick={() => markDeliveredMutation.mutate()} disabled={markDeliveredMutation.isPending}>
-                <Truck className="h-4 w-4" /> Als erhalten markieren
+                <Truck className="h-4 w-4" /> An Verkäufer übergeben
               </Button>
             )}
             {canSettle && (
@@ -91,7 +91,7 @@ export default function DeliveryDetailPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Produkt</TableHead>
-                  <TableHead className="text-right">Erhalten</TableHead>
+                  <TableHead className="text-right">Übergeben</TableHead>
                   <TableHead className="text-right">Verkauft</TableHead>
                   <TableHead className="text-right">Retour</TableHead>
                   <TableHead className="text-right">Offen</TableHead>
@@ -127,7 +127,7 @@ export default function DeliveryDetailPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
-          <CardHeader><CardTitle>Lieferungspositionen</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Ladungspositionen</CardTitle></CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
@@ -162,7 +162,7 @@ export default function DeliveryDetailPage() {
             <CardHeader><CardTitle>Details</CardTitle></CardHeader>
             <CardContent className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Lieferant</span>
+                <span className="text-muted-foreground">Verkäufer</span>
                 <span className="font-medium">{delivery.supplier.name}</span>
               </div>
               <div className="flex justify-between">
@@ -170,7 +170,7 @@ export default function DeliveryDetailPage() {
                 <Badge variant={DELIVERY_STATUS_VARIANTS[delivery.status]}>{DELIVERY_STATUS_LABELS[delivery.status]}</Badge>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Erhalten am</span>
+                <span className="text-muted-foreground">Übergeben am</span>
                 <span>{formatDate(delivery.deliveryDate)}</span>
               </div>
               <div className="flex justify-between">

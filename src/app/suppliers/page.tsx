@@ -77,34 +77,34 @@ export default function SuppliersPage() {
 
   const createMutation = useMutation({
     mutationFn: (data: Partial<Supplier>) => apiFetch('/api/suppliers', jsonInit(data)),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setDialogOpen(false); toast('Lieferant erstellt', 'success') },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setDialogOpen(false); toast('Verkäufer erstellt', 'success') },
     onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const updateMutation = useMutation({
     mutationFn: ({ id, ...data }: Supplier) => apiFetch(`/api/suppliers/${id}`, jsonInit(data, 'PUT')),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setEditing(null); toast('Lieferant gespeichert', 'success') },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); setEditing(null); toast('Verkäufer gespeichert', 'success') },
     onError: (err: Error) => toast(err.message, 'error'),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => apiFetch(`/api/suppliers/${id}`, { method: 'DELETE' }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); toast('Lieferant gelöscht', 'success') },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['suppliers'] }); toast('Verkäufer gelöscht', 'success') },
     onError: (err: Error) => toast(err.message, 'error'),
   })
 
   return (
     <div>
       <PageHeader
-        title="Lieferanten"
-        description="Distributoren und Lieferanten verwalten"
+        title="Verkäufer"
+        description="Deine Verkäufer (Außendienst) verwalten"
         actions={
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4" /> Neuer Lieferant</Button>
+              <Button><Plus className="h-4 w-4" /> Neuer Verkäufer</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Neuer Lieferant</DialogTitle></DialogHeader>
+              <DialogHeader><DialogTitle>Neuer Verkäufer</DialogTitle></DialogHeader>
               <SupplierForm onSubmit={(d) => createMutation.mutate(d)} isLoading={createMutation.isPending} />
             </DialogContent>
           </Dialog>
@@ -126,7 +126,7 @@ export default function SuppliersPage() {
             {isLoading ? (
               <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
             ) : suppliers.length === 0 ? (
-              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Noch keine Lieferanten angelegt</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} className="text-center py-8 text-muted-foreground">Noch keine Verkäufer angelegt</TableCell></TableRow>
             ) : suppliers.map((s) => (
               <TableRow key={s.id}>
                 <TableCell className="font-medium">{s.name}</TableCell>
@@ -140,7 +140,7 @@ export default function SuppliersPage() {
                         <Button variant="ghost" size="icon" onClick={() => setEditing(s)}><Pencil className="h-4 w-4" /></Button>
                       </DialogTrigger>
                       <DialogContent>
-                        <DialogHeader><DialogTitle>Lieferant bearbeiten</DialogTitle></DialogHeader>
+                        <DialogHeader><DialogTitle>Verkäufer bearbeiten</DialogTitle></DialogHeader>
                         {editing && <SupplierForm defaultValues={editing} onSubmit={(d) => updateMutation.mutate({ ...editing, ...d })} isLoading={updateMutation.isPending} />}
                       </DialogContent>
                     </Dialog>

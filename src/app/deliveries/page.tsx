@@ -31,11 +31,11 @@ export default function DeliveriesPage() {
   return (
     <div>
       <PageHeader
-        title="Lieferungen"
-        description="Wareneingänge und Verkäufe verwalten"
+        title="Ladungen an Verkäufer"
+        description="Ware, die du deinen Verkäufern übergeben hast — inkl. Verkaufsfortschritt"
         actions={
           <Link href="/deliveries/new">
-            <Button><Plus className="h-4 w-4" /> Neue Lieferung</Button>
+            <Button><Plus className="h-4 w-4" /> Neue Ladung</Button>
           </Link>
         }
       />
@@ -46,10 +46,10 @@ export default function DeliveriesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Erstellt</TableHead>
-                <TableHead>Lieferant</TableHead>
+                <TableHead>Verkäufer</TableHead>
                 <TableHead>Produkte</TableHead>
-                <TableHead>Erhalten am</TableHead>
-                <TableHead className="text-right">Verkauft</TableHead>
+                <TableHead>Übergeben am</TableHead>
+                <TableHead className="text-right">Abgerechnet</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead></TableHead>
               </TableRow>
@@ -58,7 +58,7 @@ export default function DeliveriesPage() {
               {isLoading ? (
                 <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
               ) : deliveries.length === 0 ? (
-                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Noch keine Lieferungen</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center py-8 text-muted-foreground">Noch keine Ladungen</TableCell></TableRow>
               ) : deliveries.map((d) => {
                 const settledSum = (d.settlements || []).reduce((s, x) => s + x.totalAmountCt, 0)
                 return (

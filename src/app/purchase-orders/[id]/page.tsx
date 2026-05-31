@@ -51,7 +51,7 @@ export default function PurchaseOrderDetailPage() {
     <div>
       <PageHeader
         title={`Einkaufsbestellung`}
-        description={order.supplier?.name ? `Lieferant: ${order.supplier.name}` : undefined}
+        description={order.supplier?.name ? `Großhändler: ${order.supplier.name}` : undefined}
         actions={
           <div className="flex items-center gap-2">
             <Badge variant="secondary">{STATUS_LABELS[order.status]}</Badge>

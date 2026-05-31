@@ -13,7 +13,7 @@ export async function GET() {
 
   // Eine Zeile pro Abrechnungsposition (Produkt) für maximale Auswertbarkeit
   const headers = [
-    'Abrechnungsdatum', 'Lieferant', 'SKU', 'Produkt',
+    'Abrechnungsdatum', 'Verkäufer', 'SKU', 'Produkt',
     'Menge verkauft', 'EK-Preis (€)', 'Gesamtbetrag (€)', 'Ø-Preis (€)',
     'Kosten (€)', 'Gewinn (€)', 'Marge (%)',
   ]

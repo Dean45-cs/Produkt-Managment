@@ -24,21 +24,17 @@ interface OrderItem {
 export default function NewPurchaseOrderPage() {
   const router = useRouter()
   const qc = useQueryClient()
-  const [supplierId, setSupplierId] = useState('')
+  const [wholesaler, setWholesaler] = useState('')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<OrderItem[]>([{ productId: '', quantityOrdered: 1, unitPriceCt: 0 }])
 
-  const { data: suppliers = [] } = useQuery<Array<{ id: string; name: string }>>({
-    queryKey: ['suppliers'],
-    queryFn: () => fetch('/api/suppliers').then((r) => r.json()),
-  })
   const { data: products = [] } = useQuery<Array<{ id: string; name: string; sku: string; purchasePriceCt: number }>>({
     queryKey: ['products'],
     queryFn: () => fetch('/api/products').then((r) => r.json()),
   })
 
   const mutation = useMutation({
-    mutationFn: async (data: { supplierId: string; notes: string; items: OrderItem[] }) => {
+    mutationFn: async (data: { notes: string; items: OrderItem[] }) => {
       const res = await apiFetch('/api/purchase-orders', jsonInit(data))
       return res.json()
     },
@@ -76,25 +72,22 @@ export default function NewPurchaseOrderPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    mutation.mutate({ supplierId, notes, items })
+    const combinedNotes = wholesaler.trim()
+      ? `Großhändler: ${wholesaler.trim()}${notes.trim() ? `\n${notes.trim()}` : ''}`
+      : notes
+    mutation.mutate({ notes: combinedNotes, items })
   }
 
   return (
     <div>
-      <PageHeader title="Neue Einkaufsbestellung" />
+      <PageHeader title="Neue Einkaufsbestellung" description="Ware beim Großhändler bestellen. Beim Wareneingang ('Erhalten') steigt dein Bestand." />
       <form onSubmit={handleSubmit} className="space-y-6 max-w-3xl">
         <Card>
           <CardHeader><CardTitle>Allgemein</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Lieferant (optional)</Label>
-              <Select value={supplierId || 'none'} onValueChange={(v) => setSupplierId(v === 'none' ? '' : v)}>
-                <SelectTrigger><SelectValue placeholder="Kein Lieferant" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Kein Lieferant</SelectItem>
-                  {suppliers.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Großhändler (optional)</Label>
+              <Input value={wholesaler} onChange={(e) => setWholesaler(e.target.value)} placeholder="z.B. Metro, Bäckerei Müller..." />
             </div>
             <div className="space-y-1.5">
               <Label>Notizen</Label>

@@ -37,7 +37,7 @@ export async function DELETE(_: Request, { params }: { params: Promise<{ id: str
   ])
   if (delCount > 0 || poCount > 0) {
     return NextResponse.json(
-      { error: 'Lieferant wird noch von Lieferungen oder Bestellungen verwendet' },
+      { error: 'Verkäufer wird noch von Ladungen oder Bestellungen verwendet' },
       { status: 409 }
     )
   }

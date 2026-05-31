@@ -1,11 +1,11 @@
 /**
- * Logik für den Verkaufsfortschritt einer Lieferung (einfacher Handel).
+ * Logik für den Verkaufsfortschritt einer Ladung an einen Verkäufer.
  *
- * Modell: Ein Lieferant liefert dir Ware → beim Status "Erhalten" steigt dein
- * Bestand. Anschließend verkaufst du die Ware nach und nach (ggf. in mehreren
- * Schritten) → beim Erfassen eines Verkaufs sinkt dein Bestand und es entsteht
- * Umsatz. Die noch offene (= noch zu verkaufende) Menge je Produkt =
- * erhalten − bereits verkauft − retourniert.
+ * Ablauf: Du übergibst einem deiner Verkäufer eine Ladung Ware → beim Status
+ * "Übergeben" verlässt die Ware dein Zentrallager (Bestand sinkt). Der Verkäufer
+ * verkauft sie face2face und rechnet danach ab (ggf. in mehreren Schritten).
+ * Die noch offene (= beim Verkäufer befindliche) Menge je Produkt =
+ * übergeben − bereits abgerechnet − retourniert.
  */
 
 export const DELIVERY_STATUS = {
@@ -17,17 +17,17 @@ export const DELIVERY_STATUS = {
 } as const
 
 export const DELIVERY_STATUS_LABELS: Record<string, string> = {
-  PENDING: 'Erwartet',
-  DELIVERED: 'Erhalten',
-  PARTIALLY_SETTLED: 'Teilw. verkauft',
-  SETTLED: 'Verkauft',
+  PENDING: 'Geplant',
+  DELIVERED: 'Beim Verkäufer',
+  PARTIALLY_SETTLED: 'Teilw. abgerechnet',
+  SETTLED: 'Abgerechnet',
   CANCELLED: 'Storniert',
 }
 
 export const DELIVERY_STATUS_VARIANTS: Record<string, 'default' | 'warning' | 'success' | 'destructive' | 'secondary' | 'info'> = {
   PENDING: 'secondary',
-  DELIVERED: 'info',
-  PARTIALLY_SETTLED: 'warning',
+  DELIVERED: 'warning',
+  PARTIALLY_SETTLED: 'info',
   SETTLED: 'success',
   CANCELLED: 'destructive',
 }
