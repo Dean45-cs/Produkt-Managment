@@ -3,6 +3,7 @@
 import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Sidebar } from './Sidebar'
+import { CommandPalette } from './CommandPalette'
 
 /**
  * Hülle, die den Zugriff absichert:
@@ -75,6 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="app-aura pointer-events-none fixed inset-0 -z-10" />
       <Sidebar />
       <main className="flex-1 p-6 overflow-auto">{children}</main>
+      <CommandPalette />
     </div>
   )
 }

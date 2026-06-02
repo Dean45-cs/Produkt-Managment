@@ -1,71 +1,10 @@
 'use client'
 
-import type { ElementType } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import {
-  LayoutDashboard,
-  Package,
-  Warehouse,
-  MapPin,
-  Tag,
-  Truck,
-  PackageCheck,
-  ArrowLeftRight,
-  ShoppingCart,
-  BarChart3,
-  RotateCcw,
-  Users,
-  Coins,
-  Lock,
-} from 'lucide-react'
+import { Lock, Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
-
-type NavGroup = {
-  heading: string
-  items: { href: string; label: string; icon: ElementType }[]
-}
-
-const navGroups: NavGroup[] = [
-  {
-    heading: '',
-    items: [
-      { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    ],
-  },
-  {
-    heading: 'Verkauf',
-    items: [
-      { href: '/deliveries', label: 'Ladungen', icon: Truck },
-      { href: '/settlements', label: 'Abrechnungen', icon: PackageCheck },
-      { href: '/receivables', label: 'Offene Posten', icon: Coins },
-      { href: '/returns', label: 'Retouren', icon: RotateCcw },
-    ],
-  },
-  {
-    heading: 'Einkauf',
-    items: [
-      { href: '/purchase-orders', label: 'Bestellungen', icon: ShoppingCart },
-    ],
-  },
-  {
-    heading: 'Stammdaten',
-    items: [
-      { href: '/products', label: 'Produkte', icon: Package },
-      { href: '/categories', label: 'Kategorien', icon: Tag },
-      { href: '/suppliers', label: 'Verkäufer', icon: Users },
-      { href: '/inventory', label: 'Bestand', icon: Warehouse },
-      { href: '/locations', label: 'Standorte', icon: MapPin },
-    ],
-  },
-  {
-    heading: 'Berichte',
-    items: [
-      { href: '/stock-adjustments', label: 'Lagerbewegungen', icon: ArrowLeftRight },
-      { href: '/analytics', label: 'Analyse', icon: BarChart3 },
-    ],
-  },
-]
+import { navGroups } from './nav'
 
 export function Sidebar() {
   const pathname = usePathname()
@@ -84,6 +23,16 @@ export function Sidebar() {
           Produkt Manager
         </h1>
         <p className="text-xs text-neutral-500 mt-1 pl-3.5">Bestand &amp; Verkauf</p>
+      </div>
+      <div className="px-2 pt-2">
+        <button
+          onClick={() => window.dispatchEvent(new Event('open-command-palette'))}
+          className="group flex w-full items-center gap-2 rounded-md border border-neutral-800 bg-neutral-900/60 px-3 py-2 text-sm text-neutral-400 hover:border-rose-600/40 hover:text-white transition-colors"
+        >
+          <Search className="h-4 w-4 text-neutral-500 group-hover:text-rose-500" />
+          <span className="flex-1 text-left">Suchen…</span>
+          <kbd className="rounded border border-neutral-700 px-1.5 py-0.5 text-[10px] text-neutral-500">⌘K</kbd>
+        </button>
       </div>
       <nav className="flex-1 p-2 overflow-y-auto scrollbar-dark space-y-4">
         {navGroups.map((group) => (

@@ -8,16 +8,21 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { ExportButton } from '@/components/ExportButton'
 import { centsToEuro } from '@/lib/money'
-import { formatDate } from '@/lib/utils'
+import { cn, formatDate } from '@/lib/utils'
 import {
   TrendingUp, TrendingDown, Euro, Percent, Package, Users, Truck,
   AlertTriangle, Boxes, Timer, Coins, ShoppingBag, RotateCcw,
+  Calendar, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Legend, Cell, PieChart, Pie, AreaChart, Area,
 } from 'recharts'
-import type { ElementType } from 'react'
+import { useState, type ElementType } from 'react'
+import {
+  startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter,
+  endOfQuarter, startOfYear, endOfYear, subDays, format,
+} from 'date-fns'
 
 /* ----------------------------- Typen ----------------------------- */
 
@@ -64,6 +69,26 @@ interface Insights {
   deadStock: Array<{ id: string; name: string; sku: string; stock: number; valueCt: number; lastSold: string | null; daysSinceSold: number | null }>
   reorderList: Array<{ id: string; name: string; sku: string; stock: number; reorderPoint: number; reorderQty: number }>
   marginBuckets: Array<{ label: string; count: number }>
+}
+
+interface PeriodBucket {
+  revenueCt: number; costCt: number; profitCt: number; marginPct: number
+  units: number; settlementCount: number; avgOrderCt: number; unitsDelivered: number
+}
+interface PeriodData {
+  range: { from: string; to: string }
+  prev: { from: string; to: string }
+  current: PeriodBucket
+  previous: PeriodBucket
+  shrinkage: {
+    thresholdDays: number
+    totalSent: number; totalMissing: number; totalMissingValueCt: number
+    totalStillOut: number; missingPct: number
+    sellers: Array<{
+      supplierId: string; name: string; sent: number; sold: number; returned: number
+      stillOut: number; missing: number; missingValueCt: number; missingPct: number
+    }>
+  }
 }
 
 const PIE_COLORS = ['#e11d48', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16']
@@ -120,6 +145,100 @@ function EmptyHint({ children }: { children: React.ReactNode }) {
   return <div className="h-48 flex items-center justify-center text-muted-foreground text-sm">{children}</div>
 }
 
+/* -------- Zeitraum-Auswahl -------- */
+
+type Preset = 'week' | 'month' | 'quarter' | 'year' | 'last30' | 'custom'
+interface PeriodValue { preset: Preset; from: Date; to: Date }
+
+const PRESETS: { key: Preset; label: string }[] = [
+  { key: 'week', label: 'Diese Woche' },
+  { key: 'month', label: 'Dieser Monat' },
+  { key: 'quarter', label: 'Dieses Quartal' },
+  { key: 'year', label: 'Dieses Jahr' },
+  { key: 'last30', label: 'Letzte 30 Tage' },
+]
+
+function presetRange(preset: Preset, now = new Date()): { from: Date; to: Date } {
+  switch (preset) {
+    case 'week': return { from: startOfWeek(now, { weekStartsOn: 1 }), to: endOfWeek(now, { weekStartsOn: 1 }) }
+    case 'quarter': return { from: startOfQuarter(now), to: endOfQuarter(now) }
+    case 'year': return { from: startOfYear(now), to: endOfYear(now) }
+    case 'last30': return { from: subDays(now, 29), to: now }
+    case 'month':
+    default: return { from: startOfMonth(now), to: endOfMonth(now) }
+  }
+}
+
+function PeriodControls({ value, onChange }: { value: PeriodValue; onChange: (v: PeriodValue) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex items-center gap-1 text-xs text-muted-foreground mr-1"><Calendar className="h-3.5 w-3.5" /> Zeitraum:</span>
+      {PRESETS.map((p) => (
+        <button
+          key={p.key}
+          onClick={() => onChange({ preset: p.key, ...presetRange(p.key) })}
+          className={cn(
+            'px-2.5 py-1 rounded-md text-xs font-medium border transition-colors',
+            value.preset === p.key ? 'border-rose-500/50 bg-rose-600/20 text-rose-300' : 'border-border text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {p.label}
+        </button>
+      ))}
+      <span className="flex items-center gap-1">
+        <input
+          type="date"
+          value={format(value.from, 'yyyy-MM-dd')}
+          onChange={(e) => e.target.value && onChange({ preset: 'custom', from: new Date(e.target.value), to: value.to })}
+          className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+        />
+        <span className="text-xs text-muted-foreground">–</span>
+        <input
+          type="date"
+          value={format(value.to, 'yyyy-MM-dd')}
+          onChange={(e) => e.target.value && onChange({ preset: 'custom', from: value.from, to: new Date(e.target.value) })}
+          className="h-8 rounded-md border border-input bg-transparent px-2 text-xs"
+        />
+      </span>
+    </div>
+  )
+}
+
+/** KPI-Kachel mit Veränderung gegenüber der Vorperiode. */
+function DeltaKpi({ icon: Icon, label, value, cur, prev, goodWhenUp = true }: {
+  icon: ElementType; label: string; value: React.ReactNode; cur: number; prev: number; goodWhenUp?: boolean
+}) {
+  const delta = prev > 0 ? ((cur - prev) / prev) * 100 : null
+  const up = cur >= prev
+  const good = goodWhenUp ? up : !up
+  return (
+    <Card className="hover-lift animate-fade-up">
+      <CardContent className="pt-5">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-xs text-muted-foreground">{label}</p>
+            <p className="text-xl font-bold mt-0.5 truncate">{value}</p>
+            <div className="mt-1 flex items-center gap-1 text-xs">
+              {delta == null ? (
+                <span className="text-muted-foreground">{cur > 0 ? 'neu' : 'keine Vordaten'}</span>
+              ) : (
+                <span className={cn('flex items-center gap-0.5 font-medium', good ? 'text-emerald-400' : 'text-red-400')}>
+                  {up ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
+                  {Math.abs(delta).toFixed(1)} %
+                </span>
+              )}
+              <span className="text-muted-foreground">vs. Vorperiode</span>
+            </div>
+          </div>
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg flex-shrink-0 bg-rose-500/15 text-rose-400">
+            <Icon className="h-4 w-4" />
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
 /* ----------------------------- Seite ----------------------------- */
 
 export default function AnalyticsPage() {
@@ -138,6 +257,14 @@ export default function AnalyticsPage() {
   const { data: insights } = useQuery<Insights>({
     queryKey: ['analytics-insights'],
     queryFn: () => fetch('/api/analytics/insights').then((r) => r.json()),
+  })
+
+  const [period, setPeriod] = useState<PeriodValue>(() => ({ preset: 'month', ...presetRange('month') }))
+  const fromStr = format(period.from, 'yyyy-MM-dd')
+  const toStr = format(period.to, 'yyyy-MM-dd')
+  const { data: periodData } = useQuery<PeriodData>({
+    queryKey: ['analytics-period', fromStr, toStr],
+    queryFn: () => fetch(`/api/analytics/period?from=${fromStr}&to=${toStr}`).then((r) => r.json()),
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>
@@ -195,10 +322,38 @@ export default function AnalyticsPage() {
           <TabsTrigger value="sellers">Verkäufer</TabsTrigger>
           <TabsTrigger value="products">Produkte</TabsTrigger>
           <TabsTrigger value="inventory">Bestand</TabsTrigger>
+          <TabsTrigger value="shrinkage">Schwund</TabsTrigger>
         </TabsList>
 
         {/* ===================== ÜBERSICHT ===================== */}
         <TabsContent value="overview">
+          {/* Zeitraum-Auswertung mit Vorperiodenvergleich */}
+          <Card className="mb-6">
+            <CardHeader>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Zeitraum-Auswertung</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    {format(period.from, 'dd.MM.yyyy')} – {format(period.to, 'dd.MM.yyyy')} im Vergleich zur gleich langen Vorperiode
+                  </p>
+                </div>
+                <PeriodControls value={period} onChange={setPeriod} />
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!periodData ? (
+                <EmptyHint>Lädt…</EmptyHint>
+              ) : (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <DeltaKpi icon={Euro} label="Umsatz" value={euro(periodData.current.revenueCt)} cur={periodData.current.revenueCt} prev={periodData.previous.revenueCt} />
+                  <DeltaKpi icon={periodData.current.profitCt >= 0 ? TrendingUp : TrendingDown} label="Gewinn" value={euro(periodData.current.profitCt)} cur={periodData.current.profitCt} prev={periodData.previous.profitCt} />
+                  <DeltaKpi icon={Boxes} label="Stück verkauft" value={String(periodData.current.units)} cur={periodData.current.units} prev={periodData.previous.units} />
+                  <DeltaKpi icon={ShoppingBag} label="Abrechnungen" value={String(periodData.current.settlementCount)} cur={periodData.current.settlementCount} prev={periodData.previous.settlementCount} />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           <SectionHint>Die wichtigsten Zahlen seit Beginn — was reinkommt, was hängen bleibt und wie es sich entwickelt.</SectionHint>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -720,6 +875,125 @@ export default function AnalyticsPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        {/* ===================== SCHWUND ===================== */}
+        <TabsContent value="shrinkage">
+          <SectionHint>
+            <strong className="text-foreground">Schwund</strong> = ausgegebene Ware, die seit mehr als {periodData?.shrinkage.thresholdDays ?? 7} Tagen
+            weder verkauft noch retourniert wurde — also wahrscheinlich verloren, nicht gemeldet oder abhandengekommen.
+            „Noch unterwegs" ist frisch übergebene Ware, die noch im normalen Rahmen liegt (kein Schwund).
+          </SectionHint>
+
+          <div className="mb-6">
+            <PeriodControls value={period} onChange={setPeriod} />
+            {periodData && (
+              <p className="mt-2 text-xs text-muted-foreground">
+                Übergaben vom {format(period.from, 'dd.MM.yyyy')} – {format(period.to, 'dd.MM.yyyy')}
+              </p>
+            )}
+          </div>
+
+          {!periodData ? (
+            <EmptyHint>Lädt…</EmptyHint>
+          ) : (
+            <>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <Kpi
+                  icon={AlertTriangle}
+                  label="Gesamtschwund (Wert)"
+                  value={euro(periodData.shrinkage.totalMissingValueCt)}
+                  sub={`${periodData.shrinkage.totalMissing} Stück fehlen`}
+                  tone={periodData.shrinkage.totalMissing > 0 ? 'red' : 'green'}
+                />
+                <Kpi
+                  icon={Percent}
+                  label="Schwundquote"
+                  value={pct(periodData.shrinkage.missingPct)}
+                  sub={`von ${periodData.shrinkage.totalSent} ausgegeben`}
+                  tone={periodData.shrinkage.missingPct >= 5 ? 'red' : periodData.shrinkage.missingPct > 0 ? 'amber' : 'green'}
+                />
+                <Kpi icon={Truck} label="Noch unterwegs" value={`${periodData.shrinkage.totalStillOut} Stück`} sub="kürzlich übergeben – kein Schwund" />
+                <Kpi icon={Boxes} label="Ausgegeben (Zeitraum)" value={`${periodData.shrinkage.totalSent} Stück`} tone="rose" />
+              </div>
+
+              {periodData.shrinkage.sellers.length === 0 ? (
+                <Card><CardContent className="py-12 text-center text-sm text-muted-foreground">
+                  In diesem Zeitraum wurde keine Ware an Verkäufer übergeben.
+                </CardContent></Card>
+              ) : (
+                <>
+                  {periodData.shrinkage.totalMissing > 0 && (
+                    <Card className="mb-6">
+                      <CardHeader><CardTitle>Schwundwert je Verkäufer</CardTitle></CardHeader>
+                      <CardContent>
+                        <ResponsiveContainer width="100%" height={Math.max(200, periodData.shrinkage.sellers.filter((s) => s.missingValueCt > 0).length * 48)}>
+                          <BarChart
+                            data={periodData.shrinkage.sellers.filter((s) => s.missingValueCt > 0).slice(0, 10).map((s) => ({ name: s.name, Schwund: s.missingValueCt / 100 }))}
+                            layout="vertical"
+                            margin={{ left: 20 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                            <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                            <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                            <Bar dataKey="Schwund" fill="#e11d48" radius={[0, 2, 2, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Abgleich je Verkäufer</CardTitle>
+                      <p className="text-sm text-muted-foreground">Ausgegeben = Verkauft + Retour + Noch unterwegs + Fehlt.</p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr className="border-b text-muted-foreground">
+                              <th className="text-left py-2 px-2">Verkäufer</th>
+                              <th className="text-right py-2 px-2">Ausgegeben</th>
+                              <th className="text-right py-2 px-2">Verkauft</th>
+                              <th className="text-right py-2 px-2">Retour</th>
+                              <th className="text-right py-2 px-2">Noch unterwegs</th>
+                              <th className="text-right py-2 px-2">Fehlt</th>
+                              <th className="text-right py-2 px-2">Wert</th>
+                              <th className="text-right py-2 px-2">Quote</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {periodData.shrinkage.sellers.map((s) => (
+                              <tr key={s.supplierId} className="border-b hover:bg-muted/50">
+                                <td className="py-2 px-2 font-medium">
+                                  <Link href={`/suppliers/${s.supplierId}`} className="text-rose-400 hover:underline">{s.name}</Link>
+                                </td>
+                                <td className="py-2 px-2 text-right">{s.sent}</td>
+                                <td className="py-2 px-2 text-right text-emerald-400">{s.sold}</td>
+                                <td className="py-2 px-2 text-right">{s.returned}</td>
+                                <td className="py-2 px-2 text-right text-amber-400">{s.stillOut}</td>
+                                <td className={`py-2 px-2 text-right font-medium ${s.missing > 0 ? 'text-red-400' : ''}`}>{s.missing}</td>
+                                <td className="py-2 px-2 text-right">{s.missingValueCt > 0 ? euro(s.missingValueCt) : '—'}</td>
+                                <td className="py-2 px-2 text-right">
+                                  {s.sent > 0 ? (
+                                    <span className={s.missingPct >= 5 ? 'text-red-400' : s.missingPct > 0 ? 'text-amber-400' : 'text-emerald-400'}>
+                                      {s.missingPct.toFixed(1)} %
+                                    </span>
+                                  ) : '—'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </>
+              )}
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </div>
