@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
 import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS } from '@/lib/delivery'
+import { SellerPortalCard } from '@/components/features/SellerPortalCard'
 import {
   ArrowLeft, Euro, TrendingUp, Percent, Timer, Truck, Coins, Mail, Phone, Plus,
 } from 'lucide-react'
@@ -113,6 +114,9 @@ export default function SupplierDetailPage() {
         <Kpi icon={Coins} label="Ware unterwegs" value={euro(stats.openValueCt)} sub={`${stats.openUnits} Stück offen`} tone={stats.openUnits > 0 ? 'amber' : 'default'} />
         <Kpi icon={Truck} label="Ladungen" value={stats.deliveryCount} sub={`${stats.settlementCount} Abrechnungen`} />
       </div>
+
+      {/* Verkäufer-Portal-Zugang */}
+      <SellerPortalCard supplierId={s.id} />
 
       {/* Offene Ladungen */}
       <Card className="mb-6">

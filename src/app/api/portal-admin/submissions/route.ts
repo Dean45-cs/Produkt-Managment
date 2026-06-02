@@ -1,0 +1,35 @@
+export const dynamic = 'force-dynamic'
+import { NextResponse } from 'next/server'
+import { listSubmissions, countSubmissionsByStatus, getSellerBySupplierId } from '@/lib/portal/store'
+import { runPortalMaintenance } from '@/lib/portal/sync'
+
+export async function GET() {
+  // Beim Öffnen: offene Einreichungen verbuchen + Spiegel auffrischen.
+  const maintenance = await runPortalMaintenance()
+
+  const nameCache = new Map<string, string | null>()
+  const submissions = listSubmissions(300).map((s) => {
+    if (!nameCache.has(s.supplierId)) {
+      nameCache.set(s.supplierId, getSellerBySupplierId(s.supplierId)?.name ?? null)
+    }
+    return {
+      id: s.id,
+      supplierId: s.supplierId,
+      sellerName: nameCache.get(s.supplierId) ?? null,
+      deliveryId: s.deliveryId,
+      deliveryLabel: s.deliveryLabel,
+      status: s.status,
+      settlementId: s.settlementId,
+      error: s.error,
+      reportedAt: s.reportedAt,
+      createdAt: s.createdAt,
+      appliedAt: s.appliedAt,
+      note: s.note,
+      qty: s.items.reduce((a, i) => a + i.quantitySold, 0),
+      totalCt: s.items.reduce((a, i) => a + i.totalAmountCt, 0),
+      items: s.items,
+    }
+  })
+
+  return NextResponse.json({ submissions, counts: countSubmissionsByStatus(), maintenance })
+}
