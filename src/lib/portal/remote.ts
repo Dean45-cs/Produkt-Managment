@@ -1,11 +1,49 @@
 import type { SubmissionItem } from '@/lib/portal/store'
+import { fetch as undiciFetch, ProxyAgent, type Dispatcher } from 'undici'
+import { socksDispatcher } from 'fetch-socks'
 
 /**
  * HTTP-Client zur gehosteten Portal-App (Vercel). Geschützt per gemeinsamem
  * Geheimnis (SYNC_SECRET) im Header. Konfiguration über Umgebungsvariablen:
  *  - PORTAL_BASE_URL: z.B. https://dein-portal.vercel.app
  *  - SYNC_SECRET:     identisch zur Portal-App
+ *  - SYNC_PROXY_URL:  optional. Leitet ALLE Sync-Anfragen über einen Proxy.
+ *      Tor:        socks5://127.0.0.1:9050   (deine echte IP bleibt verborgen)
+ *      HTTP-Proxy: http://127.0.0.1:8118
+ *    So sieht die Portal-App / ihr Hoster nur die Proxy-/Tor-IP, nie deinen Rechner.
  */
+
+let dispatcherCache: Dispatcher | null | undefined
+
+/** Baut (einmalig) den Proxy-Dispatcher aus SYNC_PROXY_URL; ohne Variable: direkt. */
+function getDispatcher(): Dispatcher | undefined {
+  if (dispatcherCache !== undefined) return dispatcherCache ?? undefined
+  const raw = process.env.SYNC_PROXY_URL?.trim()
+  if (!raw) {
+    dispatcherCache = null
+    return undefined
+  }
+  try {
+    const u = new URL(raw)
+    if (u.protocol === 'socks5:' || u.protocol === 'socks:' || u.protocol === 'socks4:') {
+      dispatcherCache = socksDispatcher({
+        type: u.protocol === 'socks4:' ? 4 : 5,
+        host: u.hostname,
+        port: Number(u.port) || 9050,
+      }) as unknown as Dispatcher
+    } else {
+      dispatcherCache = new ProxyAgent(raw)
+    }
+  } catch {
+    dispatcherCache = null
+  }
+  return dispatcherCache ?? undefined
+}
+
+/** Läuft der Sync über einen Proxy (z.B. Tor)? */
+export function isProxyConfigured(): boolean {
+  return !!process.env.SYNC_PROXY_URL?.trim()
+}
 
 function baseUrl(): string | null {
   const u = process.env.PORTAL_BASE_URL?.trim()
@@ -27,11 +65,14 @@ export function isSyncConfigured(): boolean {
 async function call(path: string, init: RequestInit): Promise<Response> {
   const b = baseUrl()
   if (!b) throw new Error('PORTAL_BASE_URL ist nicht gesetzt')
-  return fetch(b + path, {
-    ...init,
-    headers: { ...(init.headers || {}), 'content-type': 'application/json', 'x-sync-secret': secret() },
-    cache: 'no-store',
-  })
+  const headers = { ...(init.headers || {}), 'content-type': 'application/json', 'x-sync-secret': secret() }
+  const dispatcher = getDispatcher()
+  if (dispatcher) {
+    // Bei aktivem Proxy das fetch aus dem undici-Paket nutzen, damit fetch und
+    // Dispatcher (fetch-socks) zur selben undici-Version gehören.
+    return undiciFetch(b + path, { method: init.method, body: init.body as string | undefined, headers, dispatcher }) as unknown as Response
+  }
+  return fetch(b + path, { ...init, headers, cache: 'no-store' })
 }
 
 export interface PushOpenItem {
