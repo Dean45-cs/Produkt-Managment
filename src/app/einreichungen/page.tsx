@@ -12,9 +12,9 @@ import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
 import { apiFetch } from '@/lib/api'
 import { toast } from '@/lib/toast'
-import { Inbox, RefreshCw, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Inbox, RefreshCw, ArrowRight, AlertTriangle, CloudOff, DownloadCloud } from 'lucide-react'
 
-type Status = 'PENDING' | 'APPLIED' | 'FAILED'
+type Status = 'BOOKED' | 'FAILED'
 
 interface SubItem { productId: string; productName: string; quantitySold: number; totalAmountCt: number }
 interface Submission {
@@ -27,25 +27,30 @@ interface Submission {
   settlementId: string | null
   error: string | null
   reportedAt: string | null
-  createdAt: string
-  appliedAt: string | null
+  createdAt: string | null
+  bookedAt: string | null
   note: string | null
   qty: number
   totalCt: number
   items: SubItem[]
 }
+interface SyncInfo {
+  unlocked: boolean
+  configured: boolean
+  pushed: number
+  pulled: number
+  booked: number
+  failed: number
+  error?: string
+}
 interface InboxResponse {
   submissions: Submission[]
   counts: Record<Status, number>
-  maintenance: { unlocked: boolean; applied: number; failed: number }
+  sync: SyncInfo
 }
 
-const STATUS_LABEL: Record<Status, string> = { PENDING: 'Wird verbucht', APPLIED: 'Verbucht', FAILED: 'Problem' }
-const STATUS_VARIANT: Record<Status, 'info' | 'success' | 'destructive'> = {
-  PENDING: 'info',
-  APPLIED: 'success',
-  FAILED: 'destructive',
-}
+const STATUS_LABEL: Record<Status, string> = { BOOKED: 'Verbucht', FAILED: 'Problem' }
+const STATUS_VARIANT: Record<Status, 'success' | 'destructive'> = { BOOKED: 'success', FAILED: 'destructive' }
 
 export default function EinreichungenPage() {
   const qc = useQueryClient()
@@ -53,6 +58,17 @@ export default function EinreichungenPage() {
     queryKey: ['portal-submissions'],
     queryFn: () => fetch('/api/portal-admin/submissions').then((r) => r.json()),
     refetchInterval: 60_000,
+  })
+
+  const sync = useMutation({
+    mutationFn: () => apiFetch('/api/portal-admin/sync', { method: 'POST' }).then((r) => r.json()),
+    onSuccess: (res: SyncInfo) => {
+      qc.invalidateQueries({ queryKey: ['portal-submissions'] })
+      qc.invalidateQueries({ queryKey: ['settlements'] })
+      if (!res.configured) toast('Portal-App ist nicht verbunden', 'error')
+      else toast(`Abgeglichen: ${res.pulled} neu, ${res.booked} verbucht${res.failed ? `, ${res.failed} mit Problem` : ''}`, 'success')
+    },
+    onError: (e: Error) => toast(e.message, 'error'),
   })
 
   const retry = useMutation({
@@ -67,7 +83,8 @@ export default function EinreichungenPage() {
   })
 
   const submissions = data?.submissions ?? []
-  const counts = data?.counts ?? { PENDING: 0, APPLIED: 0, FAILED: 0 }
+  const counts = data?.counts ?? { BOOKED: 0, FAILED: 0 }
+  const notConfigured = data?.sync && !data.sync.configured
 
   return (
     <div>
@@ -75,24 +92,42 @@ export default function EinreichungenPage() {
         title="Portal-Eingang"
         description="Von deinen Verkäufern über das Portal eingereichte Verkäufe"
         actions={
-          <Button variant="ghost" size="sm" onClick={() => qc.invalidateQueries({ queryKey: ['portal-submissions'] })}>
-            <RefreshCw className="h-4 w-4" /> Aktualisieren
+          <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
+            <DownloadCloud className={`h-4 w-4 ${sync.isPending ? 'animate-pulse' : ''}`} />
+            {sync.isPending ? 'Abrufen…' : 'Jetzt abrufen'}
           </Button>
         }
       />
 
-      <div className="mb-4 grid grid-cols-3 gap-3">
+      {notConfigured && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <CloudOff className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <span>
+            Die Portal-App ist noch nicht verbunden. Setze <code>PORTAL_BASE_URL</code> und <code>SYNC_SECRET</code> in
+            der Haupt-App (siehe <code>.env.example</code>), damit Einreichungen abgeholt werden können.
+          </span>
+        </div>
+      )}
+
+      {data?.sync?.error && (
+        <div className="mb-4 flex items-start gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+          <AlertTriangle className="mt-0.5 h-4 w-4 flex-shrink-0" />
+          <span>Letzter Abgleich fehlgeschlagen: {data.sync.error}</span>
+        </div>
+      )}
+
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <Card><CardContent className="pt-5">
           <p className="text-xs text-muted-foreground">Verbucht</p>
-          <p className="mt-0.5 text-2xl font-bold text-emerald-600">{counts.APPLIED}</p>
-        </CardContent></Card>
-        <Card><CardContent className="pt-5">
-          <p className="text-xs text-muted-foreground">Wird verbucht</p>
-          <p className="mt-0.5 text-2xl font-bold text-sky-600">{counts.PENDING}</p>
+          <p className="mt-0.5 text-2xl font-bold text-emerald-600">{counts.BOOKED}</p>
         </CardContent></Card>
         <Card><CardContent className="pt-5">
           <p className="text-xs text-muted-foreground">Problem</p>
           <p className={`mt-0.5 text-2xl font-bold ${counts.FAILED > 0 ? 'text-rose-600' : 'text-neutral-400'}`}>{counts.FAILED}</p>
+        </CardContent></Card>
+        <Card className="hidden sm:block"><CardContent className="pt-5">
+          <p className="text-xs text-muted-foreground">Aktive Verkäufer-Ware (letzter Push)</p>
+          <p className="mt-0.5 text-2xl font-bold text-neutral-900">{data?.sync?.pushed ?? 0}</p>
         </CardContent></Card>
       </div>
 
@@ -111,7 +146,7 @@ export default function EinreichungenPage() {
           <EmptyState
             icon={Inbox}
             title="Noch keine Einreichungen"
-            description="Sobald ein Verkäufer über seinen persönlichen Portal-Link Verkäufe meldet, erscheinen sie hier — und werden automatisch als Abrechnung verbucht. Den Portal-Zugang richtest du beim jeweiligen Verkäufer ein."
+            description="Sobald ein Verkäufer über seinen persönlichen Portal-Link Verkäufe meldet, holst du sie hier ab — und sie werden automatisch als Abrechnung verbucht. Den Portal-Zugang richtest du beim jeweiligen Verkäufer ein."
             actionLabel="Zu den Verkäufern"
             actionHref="/suppliers"
           />
@@ -148,19 +183,14 @@ export default function EinreichungenPage() {
                   <TableCell className="text-right">{s.qty}</TableCell>
                   <TableCell className="text-right font-semibold text-emerald-600">{centsToEuro(s.totalCt)}</TableCell>
                   <TableCell><Badge variant={STATUS_VARIANT[s.status]}>{STATUS_LABEL[s.status]}</Badge></TableCell>
-                  <TableCell className="text-sm text-muted-foreground">{formatDate(s.createdAt)}</TableCell>
+                  <TableCell className="text-sm text-muted-foreground">{s.createdAt ? formatDate(s.createdAt) : '—'}</TableCell>
                   <TableCell className="text-right">
-                    {s.status === 'APPLIED' && s.settlementId ? (
+                    {s.status === 'BOOKED' && s.settlementId ? (
                       <Link href={`/settlements/${s.settlementId}`}>
                         <Button variant="ghost" size="sm">Abrechnung <ArrowRight className="h-4 w-4" /></Button>
                       </Link>
                     ) : (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => retry.mutate(s.id)}
-                        disabled={retry.isPending}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => retry.mutate(s.id)} disabled={retry.isPending}>
                         <RefreshCw className="h-4 w-4" /> Erneut buchen
                       </Button>
                     )}

@@ -51,18 +51,9 @@ export async function middleware(req: NextRequest) {
 
   // Öffentlich: Unlock-Seite + nur die nicht-schützenden Auth-Endpunkte.
   // /api/auth/lock ist NICHT öffentlich – sonst könnte jeder die App sperren.
-  //
-  // Außerdem öffentlich: das Verkäufer-Portal (/portal/<token>) und seine
-  // API (/api/portal/<token>/...). Dieses hat eine EIGENE Anmeldung (Link +
-  // PIN) und muss auch bei gesperrter Haupt-App erreichbar sein. Die Owner-
-  // Verwaltung unter /api/portal-admin/... bleibt bewusst hinter dem Master-Gate.
-  if (
-    pathname === '/unlock' ||
-    pathname === '/api/auth/unlock' ||
-    pathname === '/api/auth/status' ||
-    pathname.startsWith('/portal/') ||
-    pathname.startsWith('/api/portal/')
-  ) {
+  // (Das Verkäufer-Portal ist eine eigene App; die Owner-Verwaltung unter
+  // /api/portal-admin/... bleibt hinter dem Master-Gate.)
+  if (pathname === '/unlock' || pathname === '/api/auth/unlock' || pathname === '/api/auth/status') {
     return NextResponse.next()
   }
 

@@ -1,19 +1,15 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
-import { getSellerByToken } from '@/lib/portal/store'
-import { PORTAL_COOKIE, signPortalCookie, verifyPin } from '@/lib/portal/auth'
+import { getSellerByToken } from '@/lib/data'
+import { PORTAL_COOKIE, signCookie, verifyPin } from '@/lib/auth'
 
-// Einfacher Brute-Force-Schutz je Token: nach 5 Fehlversuchen 60s Sperre.
 const attempts = new Map<string, { count: number; until: number }>()
-
-const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 // 7 Tage
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
-  const seller = getSellerByToken(token)
-  if (!seller || !seller.enabled) {
-    return NextResponse.json({ error: 'Kein Zugang' }, { status: 404 })
-  }
+  const seller = await getSellerByToken(token)
+  if (!seller || !seller.enabled) return NextResponse.json({ error: 'Kein Zugang' }, { status: 404 })
 
   const now = Date.now()
   const rec = attempts.get(token)
@@ -23,8 +19,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   const body = await req.json().catch(() => ({}))
   const pin = typeof body?.pin === 'string' ? body.pin : ''
-
-  // Kein PIN gesetzt → Link allein genügt; trotzdem Cookie setzen.
   const ok = seller.pinHash ? verifyPin(pin, seller.pinHash) : true
   if (!ok) {
     const count = (rec?.count ?? 0) + 1
@@ -34,7 +28,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
 
   attempts.delete(token)
   const res = NextResponse.json({ ok: true })
-  res.cookies.set(PORTAL_COOKIE, signPortalCookie(token), {
+  res.cookies.set(PORTAL_COOKIE, signCookie(token), {
     httpOnly: true,
     sameSite: 'lax',
     path: '/',

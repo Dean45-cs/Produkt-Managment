@@ -1,11 +1,11 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { listSubmissions, countSubmissionsByStatus, getSellerBySupplierId } from '@/lib/portal/store'
-import { runPortalMaintenance } from '@/lib/portal/sync'
+import { triggerSync } from '@/lib/portal/sync'
 
 export async function GET() {
-  // Beim Öffnen: offene Einreichungen verbuchen + Spiegel auffrischen.
-  const maintenance = await runPortalMaintenance()
+  // Beim Öffnen mit der Portal-App synchronisieren (abholen + verbuchen).
+  const sync = await triggerSync()
 
   const nameCache = new Map<string, string | null>()
   const submissions = listSubmissions(300).map((s) => {
@@ -23,7 +23,7 @@ export async function GET() {
       error: s.error,
       reportedAt: s.reportedAt,
       createdAt: s.createdAt,
-      appliedAt: s.appliedAt,
+      bookedAt: s.bookedAt,
       note: s.note,
       qty: s.items.reduce((a, i) => a + i.quantitySold, 0),
       totalCt: s.items.reduce((a, i) => a + i.totalAmountCt, 0),
@@ -31,5 +31,5 @@ export async function GET() {
     }
   })
 
-  return NextResponse.json({ submissions, counts: countSubmissionsByStatus(), maintenance })
+  return NextResponse.json({ submissions, counts: countSubmissionsByStatus(), sync })
 }

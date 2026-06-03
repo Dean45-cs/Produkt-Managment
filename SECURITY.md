@@ -60,28 +60,33 @@ Neue Migrationen entwickelst du wie bisher (SQL-Datei in `prisma/migrations/`);
 sie werden beim nächsten Entsperren angewandt. `npx prisma migrate deploy` gegen
 die verschlüsselte Datei ist **nicht** mehr nötig/möglich.
 
-## Verkäufer-Portal (separater Eingang)
+## Verkäufer-Portal (zwei getrennte Apps)
 
-Verkäufer reichen ihre Verkäufe über einen **persönlichen Link** (`/portal/<token>`)
-plus **PIN** ein. Damit das **auch bei gesperrter Haupt-App** funktioniert, liegen
-diese Einreichungen in einer **eigenen** Datei `portal.db` mit **eigenem Schlüssel**
-(`PORTAL_SECRET`, fällt auf `SESSION_SECRET` zurück) – getrennt vom
-Master-verschlüsselten `dev.db`.
+Das Verkäufer-Portal ist eine **eigene, öffentlich gehostete App** (`portal-app/`,
+z.B. auf Vercel, mit Postgres). Die **Haupt-App bleibt lokal** und ist die einzige,
+die echte Abrechnungen bucht. Beide sprechen nur über eine kleine Sync-Schnittstelle
+miteinander.
 
-- **Zugang:** langer Zufalls-Token im Link (≈192 Bit) + PIN (scrypt-gehasht,
-  Rate-Limit nach 5 Fehlversuchen). Nach PIN-Eingabe ein signiertes Portal-Cookie.
-- **Datenfluss:** Eine Einreichung verändert **nie direkt** die Hauptdaten. Sie
-  landet im Eingang und wird – sobald die App entsperrt ist – über dieselbe,
-  geprüfte Abrechnungslogik **automatisch verbucht** (Mengen werden gegen die noch
-  offene Ware validiert; Überverkäufe landen als „Problem" im Owner-Eingang).
+- **Verkäufer-Zugang (Portal-App):** persönlicher Link mit langem Zufalls-Token
+  (≈192 Bit) + PIN (scrypt-gehasht, Rate-Limit nach 5 Fehlversuchen). Nach
+  PIN-Eingabe ein signiertes Cookie. Die Portal-App **bucht nichts** – sie nimmt
+  Einreichungen nur entgegen.
+- **Sync (nur Haupt-App → Portal-App):** geschützt per gemeinsamem Geheimnis
+  `SYNC_SECRET` (Header `x-sync-secret`). Die Haupt-App **pusht** Zugänge + offene
+  Ware und **holt** Einreichungen ab, verbucht sie lokal über dieselbe geprüfte
+  Abrechnungslogik (Mengen gegen offene Ware validiert; Überverkäufe → „Problem")
+  und **meldet das Ergebnis zurück**. `/api/sync/*` ist ohne Secret nicht nutzbar.
 - **Owner-Verwaltung** (`/api/portal-admin/...`, Portal aktivieren, Link/PIN) bleibt
-  hinter dem Master-Passwort. Nur das Verkäufer-Portal selbst ist öffentlich.
-- **Trade-off:** `portal.db` ist mit einem auf dem Server hinterlegten Schlüssel
-  verschlüsselt (nicht mit deinem Master-Passwort). Es enthält bewusst nur die
-  Einreichungen und einen Spiegel der offenen Mengen – nicht deine gesamte
-  Geschäftsdatenbank. Setze in Produktion ein eigenes, langes `PORTAL_SECRET`.
+  hinter dem Master-Passwort.
+- **Trennung der Daten:** Deine vollständige, sensible Geschäftsdatenbank (`dev.db`)
+  verlässt **nie** den lokalen Rechner. In der gehosteten Portal-DB liegen nur:
+  Verkäufer-Zugänge (Token/PIN-Hash), ein Ausschnitt der offenen Ware und die
+  Einreichungen – das Nötigste, damit Verkäufer einreichen können.
+- **Lokaler Owner-Speicher:** `portal.db` (eigener Schlüssel `PORTAL_SECRET`, fällt
+  auf `SESSION_SECRET` zurück) hält nur die Verkäufer-Zugänge und das Protokoll der
+  abgeholten Einreichungen. `portal.db` ist wie `dev.db` in `.gitignore`.
 
-`portal.db` ist wie `dev.db` in `.gitignore` und wird nie eingecheckt.
+Deploy-Anleitung für die Portal-App: siehe `portal-app/README.md`.
 
 ## Was geschützt ist – und was nicht
 

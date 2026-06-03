@@ -11,16 +11,20 @@ import {
   clearPin,
 } from '@/lib/portal/store'
 import { hashPin } from '@/lib/portal/auth'
-import { syncSeller } from '@/lib/portal/sync'
+import { getPortalBaseUrl, isSyncConfigured } from '@/lib/portal/remote'
+import { triggerSync } from '@/lib/portal/sync'
 
 function config(supplierId: string, name: string) {
   const seller = getSellerBySupplierId(supplierId)
+  const base = getPortalBaseUrl()
   return {
     supplierId,
     name,
     enabled: seller?.enabled ?? false,
     token: seller?.token ?? null,
     hasPin: !!seller?.pinHash,
+    link: seller?.token && base ? `${base}/portal/${seller.token}` : null,
+    portalConfigured: isSyncConfigured(),
   }
 }
 
@@ -38,14 +42,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ supplie
 
   const body = await req.json().catch(() => ({}))
   const action: string = body?.action
-
-  // Zeile sicherstellen (Name aktuell halten), ohne Aktivierung zu verändern.
   ensureSeller(supplierId, supplier.name)
 
   switch (action) {
     case 'enable':
       enableSeller(supplierId, supplier.name)
-      await syncSeller(prisma, supplierId)
       break
     case 'disable':
       disableSeller(supplierId)
@@ -67,6 +68,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ supplie
     default:
       return NextResponse.json({ error: 'Unbekannte Aktion' }, { status: 400 })
   }
+
+  // Geänderte Zugangsdaten + offene Ware an die Portal-App pushen (best effort).
+  await triggerSync().catch(() => {})
 
   return NextResponse.json(config(supplierId, supplier.name))
 }

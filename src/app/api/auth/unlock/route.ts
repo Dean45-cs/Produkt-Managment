@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { unlock, getSessionToken, dbFileExists, getIdleTimeoutMs } from '@/lib/vault'
 import { signSession, SESSION_COOKIE } from '@/lib/session'
-import { runPortalMaintenance } from '@/lib/portal/sync'
+import { triggerSync } from '@/lib/portal/sync'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,8 +29,9 @@ export async function POST(req: Request) {
   const token = getSessionToken()
   if (!token) return NextResponse.json({ error: 'Session-Fehler' }, { status: 500 })
 
-  // Eingereichte Portal-Verkäufe jetzt (im Hintergrund) verbuchen + Spiegel auffrischen.
-  void runPortalMaintenance().catch(() => {})
+  // Im Hintergrund mit der Portal-App synchronisieren: offene Ware hochladen,
+  // neue Einreichungen abholen und verbuchen.
+  void triggerSync().catch(() => {})
 
   const res = NextResponse.json({ ok: true, firstRun: result.firstRun })
   const idleMs = getIdleTimeoutMs()

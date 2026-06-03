@@ -4,20 +4,17 @@ import { escapeKey } from '@/lib/db-encryption'
 import { generateToken } from '@/lib/portal/auth'
 
 /**
- * Separater "Portal-Eingang" – eine EIGENE verschlüsselte SQLite-Datei
- * (portal.db), unabhängig vom Master-verschlüsselten Hauptspeicher (dev.db).
+ * Lokaler Owner-Speicher für das Verkäufer-Portal (getrennt vom Master-
+ * verschlüsselten dev.db, eigener Schlüssel PORTAL_SECRET).
  *
- * Warum getrennt? Damit Verkäufer ihre Verkäufe JEDERZEIT einreichen können –
- * auch wenn die Haupt-App gerade gesperrt ist (dann liegt der Master-Schlüssel
- * nicht im Speicher). Dieser Eingang nutzt einen eigenen Schlüssel
- * (PORTAL_SECRET / SESSION_SECRET) und ist daher immer beschreibbar.
+ * Enthält:
+ *  - seller:     Portal-Zugang je Verkäufer (Link-Token + PIN-Hash). Quelle der
+ *                Wahrheit; wird per Sync an die Portal-App (Vercel) gepusht.
+ *  - submission: lokales Protokoll der vom Portal abgeholten Einreichungen und
+ *                wie sie verbucht wurden (BOOKED/FAILED).
  *
- * Inhalt:
- *  - seller:     Portal-Zugang je Verkäufer (Token für den Link + PIN-Hash).
- *  - open_item:  Spiegel der offenen Ladungen (damit der Verkäufer sie auch bei
- *                gesperrter App sieht). Wird bei jeder Entsperrung aufgefrischt.
- *  - submission: eingereichte Verkäufe. Werden – sobald die App entsperrt ist –
- *                automatisch in echte Abrechnungen (Settlement) gebucht.
+ * Die offene Ware wird NICHT hier gespiegelt – sie wird beim Sync direkt aus
+ * dev.db berechnet und hochgeladen.
  */
 
 const PORTAL_DB_PATH = path.resolve(process.cwd(), 'portal.db')
@@ -39,14 +36,12 @@ interface RawDB {
   exec: (s: string) => unknown
   prepare: (s: string) => Stmt
   pragma: (s: string) => unknown
-  transaction: <T>(fn: (...a: unknown[]) => T) => (...a: unknown[]) => T
 }
 
 const globalForPortal = globalThis as unknown as { __pmsPortalDb?: RawDB }
 
 function init(): RawDB {
   const db = new Database(PORTAL_DB_PATH) as unknown as RawDB
-  // PRAGMA key MUSS die erste Anweisung sein (SQLCipher).
   db.pragma(`key='${escapeKey(getKey())}'`)
   db.pragma('journal_mode = WAL')
   db.exec(`
@@ -58,32 +53,19 @@ function init(): RawDB {
       name        TEXT,
       updated_at  TEXT NOT NULL
     );
-    CREATE TABLE IF NOT EXISTS open_item (
-      delivery_id        TEXT NOT NULL,
-      product_id         TEXT NOT NULL,
-      supplier_id        TEXT NOT NULL,
-      delivery_label     TEXT,
-      delivery_date      TEXT,
-      product_name       TEXT,
-      quantity_open      INTEGER NOT NULL,
-      suggested_price_ct INTEGER NOT NULL DEFAULT 0,
-      PRIMARY KEY (delivery_id, product_id)
-    );
-    CREATE INDEX IF NOT EXISTS open_item_supplier ON open_item(supplier_id);
     CREATE TABLE IF NOT EXISTS submission (
-      id            TEXT PRIMARY KEY,
-      supplier_id   TEXT NOT NULL,
-      token         TEXT NOT NULL,
-      delivery_id   TEXT NOT NULL,
+      id             TEXT PRIMARY KEY,
+      supplier_id    TEXT NOT NULL,
+      delivery_id    TEXT NOT NULL,
       delivery_label TEXT,
-      payload_json  TEXT NOT NULL,
-      reported_at   TEXT,
-      note          TEXT,
-      status        TEXT NOT NULL DEFAULT 'PENDING',
-      settlement_id TEXT,
-      error         TEXT,
-      created_at    TEXT NOT NULL,
-      applied_at    TEXT
+      payload_json   TEXT NOT NULL,
+      reported_at    TEXT,
+      note           TEXT,
+      status         TEXT NOT NULL,
+      settlement_id  TEXT,
+      error          TEXT,
+      created_at     TEXT,
+      booked_at      TEXT
     );
     CREATE INDEX IF NOT EXISTS submission_status ON submission(status);
     CREATE INDEX IF NOT EXISTS submission_supplier ON submission(supplier_id);
@@ -132,35 +114,27 @@ export function getSellerBySupplierId(supplierId: string): SellerRow | null {
   return mapSeller(db().prepare('SELECT * FROM seller WHERE supplier_id = ?').get(supplierId) as SellerDbRow | undefined)
 }
 
-export function getSellerByToken(token: string): SellerRow | null {
-  if (!token) return null
-  return mapSeller(db().prepare('SELECT * FROM seller WHERE token = ?').get(token) as SellerDbRow | undefined)
-}
-
-export function listEnabledSellers(): SellerRow[] {
-  const rows = db().prepare('SELECT * FROM seller WHERE enabled = 1').all() as SellerDbRow[]
+/** Alle Verkäufer mit Portal-Token (aktiv oder zuletzt deaktiviert) – Push-Kandidaten. */
+export function listSellersWithToken(): SellerRow[] {
+  const rows = db().prepare('SELECT * FROM seller WHERE token IS NOT NULL').all() as SellerDbRow[]
   return rows.map((r) => mapSeller(r)!).filter(Boolean)
 }
 
-/** Stellt sicher, dass eine Zeile existiert (ohne Auth zu verändern) und aktualisiert den Namen. */
 export function ensureSeller(supplierId: string, name: string | null): SellerRow {
-  const now = new Date().toISOString()
   db().prepare(
     `INSERT INTO seller (supplier_id, name, enabled, updated_at) VALUES (?, ?, 0, ?)
      ON CONFLICT(supplier_id) DO UPDATE SET name = excluded.name`
-  ).run(supplierId, name, now)
+  ).run(supplierId, name, new Date().toISOString())
   return getSellerBySupplierId(supplierId)!
 }
 
-/** Aktiviert das Portal für einen Verkäufer; erzeugt bei Bedarf einen Link-Token. */
 export function enableSeller(supplierId: string, name: string | null): SellerRow {
   const existing = getSellerBySupplierId(supplierId)
   const token = existing?.token || generateToken()
-  const now = new Date().toISOString()
   db().prepare(
     `INSERT INTO seller (supplier_id, token, name, enabled, updated_at) VALUES (?, ?, ?, 1, ?)
      ON CONFLICT(supplier_id) DO UPDATE SET token = excluded.token, name = excluded.name, enabled = 1, updated_at = excluded.updated_at`
-  ).run(supplierId, token, name, now)
+  ).run(supplierId, token, name, new Date().toISOString())
   return getSellerBySupplierId(supplierId)!
 }
 
@@ -168,10 +142,8 @@ export function disableSeller(supplierId: string): void {
   db().prepare('UPDATE seller SET enabled = 0, updated_at = ? WHERE supplier_id = ?').run(new Date().toISOString(), supplierId)
 }
 
-/** Erzeugt einen neuen Token (macht den alten Link ungültig). */
 export function regenerateToken(supplierId: string): SellerRow {
-  const token = generateToken()
-  db().prepare('UPDATE seller SET token = ?, updated_at = ? WHERE supplier_id = ?').run(token, new Date().toISOString(), supplierId)
+  db().prepare('UPDATE seller SET token = ?, updated_at = ? WHERE supplier_id = ?').run(generateToken(), new Date().toISOString(), supplierId)
   return getSellerBySupplierId(supplierId)!
 }
 
@@ -183,69 +155,9 @@ export function clearPin(supplierId: string): void {
   db().prepare('UPDATE seller SET pin_hash = NULL, updated_at = ? WHERE supplier_id = ?').run(new Date().toISOString(), supplierId)
 }
 
-// ---------- Spiegel der offenen Ladungen ----------
+// ---------- Einreichungs-Protokoll ----------
 
-export interface OpenItemRow {
-  deliveryId: string
-  productId: string
-  supplierId: string
-  deliveryLabel: string | null
-  deliveryDate: string | null
-  productName: string | null
-  quantityOpen: number
-  suggestedPriceCt: number
-}
-
-interface OpenItemDbRow {
-  delivery_id: string
-  product_id: string
-  supplier_id: string
-  delivery_label: string | null
-  delivery_date: string | null
-  product_name: string | null
-  quantity_open: number
-  suggested_price_ct: number
-}
-
-export function replaceOpenItems(supplierId: string, items: OpenItemRow[]): void {
-  const d = db()
-  const del = d.prepare('DELETE FROM open_item WHERE supplier_id = ?')
-  const ins = d.prepare(
-    `INSERT OR REPLACE INTO open_item
-       (delivery_id, product_id, supplier_id, delivery_label, delivery_date, product_name, quantity_open, suggested_price_ct)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-  )
-  const tx = d.transaction(() => {
-    del.run(supplierId)
-    for (const it of items) {
-      ins.run(
-        it.deliveryId, it.productId, it.supplierId, it.deliveryLabel,
-        it.deliveryDate, it.productName, it.quantityOpen, it.suggestedPriceCt
-      )
-    }
-  })
-  tx()
-}
-
-export function getOpenItems(supplierId: string): OpenItemRow[] {
-  const rows = db().prepare(
-    'SELECT * FROM open_item WHERE supplier_id = ? AND quantity_open > 0 ORDER BY delivery_date ASC, delivery_id ASC'
-  ).all(supplierId) as OpenItemDbRow[]
-  return rows.map((r) => ({
-    deliveryId: r.delivery_id,
-    productId: r.product_id,
-    supplierId: r.supplier_id,
-    deliveryLabel: r.delivery_label,
-    deliveryDate: r.delivery_date,
-    productName: r.product_name,
-    quantityOpen: r.quantity_open,
-    suggestedPriceCt: r.suggested_price_ct,
-  }))
-}
-
-// ---------- Einreichungen ----------
-
-export type SubmissionStatus = 'PENDING' | 'APPLIED' | 'FAILED'
+export type SubmissionStatus = 'BOOKED' | 'FAILED'
 
 export interface SubmissionItem {
   productId: string
@@ -257,7 +169,6 @@ export interface SubmissionItem {
 export interface SubmissionRow {
   id: string
   supplierId: string
-  token: string
   deliveryId: string
   deliveryLabel: string | null
   items: SubmissionItem[]
@@ -266,14 +177,13 @@ export interface SubmissionRow {
   status: SubmissionStatus
   settlementId: string | null
   error: string | null
-  createdAt: string
-  appliedAt: string | null
+  createdAt: string | null
+  bookedAt: string | null
 }
 
 interface SubmissionDbRow {
   id: string
   supplier_id: string
-  token: string
   delivery_id: string
   delivery_label: string | null
   payload_json: string
@@ -282,8 +192,8 @@ interface SubmissionDbRow {
   status: SubmissionStatus
   settlement_id: string | null
   error: string | null
-  created_at: string
-  applied_at: string | null
+  created_at: string | null
+  booked_at: string | null
 }
 
 function mapSubmission(r: SubmissionDbRow | undefined): SubmissionRow | null {
@@ -293,7 +203,6 @@ function mapSubmission(r: SubmissionDbRow | undefined): SubmissionRow | null {
   return {
     id: r.id,
     supplierId: r.supplier_id,
-    token: r.token,
     deliveryId: r.delivery_id,
     deliveryLabel: r.delivery_label,
     items,
@@ -303,61 +212,62 @@ function mapSubmission(r: SubmissionDbRow | undefined): SubmissionRow | null {
     settlementId: r.settlement_id,
     error: r.error,
     createdAt: r.created_at,
-    appliedAt: r.applied_at,
+    bookedAt: r.booked_at,
   }
 }
 
-export function insertSubmission(input: {
+/** Schreibt/aktualisiert eine abgeholte Einreichung im lokalen Protokoll. */
+export function recordSubmission(row: {
   id: string
   supplierId: string
-  token: string
   deliveryId: string
   deliveryLabel: string | null
   items: SubmissionItem[]
   reportedAt: string | null
   note: string | null
+  status: SubmissionStatus
+  settlementId: string | null
+  error: string | null
+  createdAt: string | null
+  bookedAt: string | null
 }): void {
   db().prepare(
     `INSERT INTO submission
-       (id, supplier_id, token, delivery_id, delivery_label, payload_json, reported_at, note, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)`
+       (id, supplier_id, delivery_id, delivery_label, payload_json, reported_at, note, status, settlement_id, error, created_at, booked_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       status = excluded.status, settlement_id = excluded.settlement_id, error = excluded.error, booked_at = excluded.booked_at`
   ).run(
-    input.id, input.supplierId, input.token, input.deliveryId, input.deliveryLabel,
-    JSON.stringify(input.items), input.reportedAt, input.note, new Date().toISOString()
+    row.id, row.supplierId, row.deliveryId, row.deliveryLabel, JSON.stringify(row.items),
+    row.reportedAt, row.note, row.status, row.settlementId, row.error, row.createdAt, row.bookedAt
   )
-}
-
-export function listPendingSubmissions(): SubmissionRow[] {
-  const rows = db().prepare("SELECT * FROM submission WHERE status = 'PENDING' ORDER BY created_at ASC").all() as SubmissionDbRow[]
-  return rows.map((r) => mapSubmission(r)!).filter(Boolean)
-}
-
-export function listSubmissions(limit = 200): SubmissionRow[] {
-  const rows = db().prepare('SELECT * FROM submission ORDER BY created_at DESC LIMIT ?').all(limit) as SubmissionDbRow[]
-  return rows.map((r) => mapSubmission(r)!).filter(Boolean)
-}
-
-export function listSubmissionsForSupplier(supplierId: string, limit = 20): SubmissionRow[] {
-  const rows = db().prepare('SELECT * FROM submission WHERE supplier_id = ? ORDER BY created_at DESC LIMIT ?').all(supplierId, limit) as SubmissionDbRow[]
-  return rows.map((r) => mapSubmission(r)!).filter(Boolean)
 }
 
 export function getSubmission(id: string): SubmissionRow | null {
   return mapSubmission(db().prepare('SELECT * FROM submission WHERE id = ?').get(id) as SubmissionDbRow | undefined)
 }
 
-export function markSubmissionApplied(id: string, settlementId: string): void {
-  db().prepare("UPDATE submission SET status = 'APPLIED', settlement_id = ?, error = NULL, applied_at = ? WHERE id = ?")
+export function hasSubmission(id: string): boolean {
+  return !!db().prepare('SELECT 1 FROM submission WHERE id = ?').get(id)
+}
+
+export function listSubmissions(limit = 300): SubmissionRow[] {
+  const rows = db().prepare('SELECT * FROM submission ORDER BY created_at DESC LIMIT ?').all(limit) as SubmissionDbRow[]
+  return rows.map((r) => mapSubmission(r)!).filter(Boolean)
+}
+
+export function markBooked(id: string, settlementId: string): void {
+  db().prepare("UPDATE submission SET status = 'BOOKED', settlement_id = ?, error = NULL, booked_at = ? WHERE id = ?")
     .run(settlementId, new Date().toISOString(), id)
 }
 
-export function markSubmissionFailed(id: string, error: string): void {
+export function markFailed(id: string, error: string): void {
   db().prepare("UPDATE submission SET status = 'FAILED', error = ? WHERE id = ?").run(error.slice(0, 500), id)
 }
 
-export function countSubmissionsByStatus(): Record<SubmissionStatus, number> {
+export function countSubmissionsByStatus(): { BOOKED: number; FAILED: number } {
   const rows = db().prepare('SELECT status, COUNT(*) AS n FROM submission GROUP BY status').all() as { status: SubmissionStatus; n: number }[]
-  const out: Record<SubmissionStatus, number> = { PENDING: 0, APPLIED: 0, FAILED: 0 }
-  for (const r of rows) out[r.status] = r.n
+  const out = { BOOKED: 0, FAILED: 0 }
+  for (const r of rows) if (r.status in out) out[r.status] = r.n
   return out
 }

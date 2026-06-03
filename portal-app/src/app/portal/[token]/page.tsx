@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { centsToEuro } from '@/lib/money'
-import { Store, Lock, Loader2, CheckCircle2, Clock, AlertTriangle, PackageOpen, Send } from 'lucide-react'
+import { Store, Lock, Loader2, CheckCircle2, AlertTriangle, PackageOpen, Send } from 'lucide-react'
 
 interface OpenDeliveryItem {
   productId: string
@@ -24,11 +24,11 @@ interface OpenDelivery {
 interface RecentSubmission {
   id: string
   deliveryLabel: string | null
-  status: 'PENDING' | 'APPLIED' | 'FAILED'
-  createdAt: string
+  displayStatus: 'RECEIVED' | 'BOOKED' | 'FAILED'
   qty: number
   totalCt: number
-  error: string | null
+  bookError: string | null
+  createdAt: string
 }
 interface MeResponse {
   ok: boolean
@@ -41,14 +41,14 @@ interface MeResponse {
 
 type Draft = { qty: string; amount: string }
 
-const STATUS_LABEL: Record<RecentSubmission['status'], string> = {
-  PENDING: 'Eingereicht',
-  APPLIED: 'Verbucht',
+const STATUS_LABEL: Record<RecentSubmission['displayStatus'], string> = {
+  RECEIVED: 'Eingereicht',
+  BOOKED: 'Verbucht',
   FAILED: 'Problem',
 }
-const STATUS_VARIANT: Record<RecentSubmission['status'], 'info' | 'success' | 'destructive'> = {
-  PENDING: 'info',
-  APPLIED: 'success',
+const STATUS_VARIANT: Record<RecentSubmission['displayStatus'], 'info' | 'success' | 'destructive'> = {
+  RECEIVED: 'info',
+  BOOKED: 'success',
   FAILED: 'destructive',
 }
 
@@ -141,18 +141,13 @@ export default function PortalPage() {
         setResult({ deliveryId: delivery.deliveryId, type: 'err', text: data.error || 'Einreichen fehlgeschlagen' })
         return
       }
-      // Entwürfe dieser Ladung leeren
       setDrafts((d) => {
         const next = { ...d }
         for (const it of delivery.items) delete next[`${delivery.deliveryId}:${it.productId}`]
         return next
       })
       setNotes((n) => ({ ...n, [delivery.deliveryId]: '' }))
-      setResult({
-        deliveryId: delivery.deliveryId,
-        type: 'ok',
-        text: data.status === 'APPLIED' ? 'Verkauf eingereicht und verbucht. Danke!' : 'Verkauf eingereicht – wird verbucht. Danke!',
-      })
+      setResult({ deliveryId: delivery.deliveryId, type: 'ok', text: 'Verkauf eingereicht. Danke!' })
       await load()
     } catch {
       setResult({ deliveryId: delivery.deliveryId, type: 'err', text: 'Netzwerkfehler' })
@@ -160,8 +155,6 @@ export default function PortalPage() {
       setSubmittingId(null)
     }
   }
-
-  // ----- Render -----
 
   if (loading) {
     return (
@@ -187,7 +180,6 @@ export default function PortalPage() {
     )
   }
 
-  // PIN-Gate
   if (me.requiresPin && !me.authed) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-100 p-4">
@@ -343,13 +335,11 @@ export default function PortalPage() {
                 <li key={s.id} className="flex items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <Badge variant={STATUS_VARIANT[s.status]}>{STATUS_LABEL[s.status]}</Badge>
+                      <Badge variant={STATUS_VARIANT[s.displayStatus]}>{STATUS_LABEL[s.displayStatus]}</Badge>
                       <span className="text-sm text-neutral-900">{s.qty} Stück</span>
                     </div>
-                    {s.status === 'FAILED' && s.error && (
-                      <p className="mt-1 flex items-center gap-1 text-xs text-rose-600">
-                        <Clock className="h-3 w-3" /> {s.error}
-                      </p>
+                    {s.displayStatus === 'FAILED' && s.bookError && (
+                      <p className="mt-1 text-xs text-rose-600">{s.bookError}</p>
                     )}
                   </div>
                   <span className="font-semibold text-emerald-600">{centsToEuro(s.totalCt)}</span>
@@ -359,9 +349,7 @@ export default function PortalPage() {
           </section>
         )}
 
-        <p className="pb-4 text-center text-[11px] text-neutral-500">
-          Gesicherter Zugang · nur für dich bestimmt
-        </p>
+        <p className="pb-4 text-center text-[11px] text-neutral-500">Gesicherter Zugang · nur für dich bestimmt</p>
       </main>
     </div>
   )

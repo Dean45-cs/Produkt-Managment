@@ -17,6 +17,8 @@ interface PortalConfig {
   enabled: boolean
   token: string | null
   hasPin: boolean
+  link: string | null
+  portalConfigured: boolean
 }
 
 /**
@@ -44,7 +46,7 @@ export function SellerPortalCard({ supplierId }: { supplierId: string }) {
   const run = (body: { action: string; pin?: string }, successMsg?: string, after?: () => void) =>
     act.mutate(body, { onSuccess: () => { if (successMsg) toast(successMsg, 'success'); after?.() } })
 
-  const link = data?.token && typeof window !== 'undefined' ? `${window.location.origin}/portal/${data.token}` : ''
+  const link = data?.link ?? ''
 
   async function copyLink() {
     if (!link) return
@@ -78,6 +80,15 @@ export function SellerPortalCard({ supplierId }: { supplierId: string }) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
+        {data && !data.portalConfigured && (
+          <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <ShieldAlert className="mt-0.5 h-4 w-4 flex-shrink-0" />
+            <span>
+              Die Portal-App ist noch nicht verbunden (<code>PORTAL_BASE_URL</code> / <code>SYNC_SECRET</code> fehlen).
+              Du kannst den Zugang schon einrichten; der Link funktioniert, sobald die Portal-App verbunden ist.
+            </span>
+          </div>
+        )}
         {isLoading ? (
           <p className="text-sm text-muted-foreground">Laden…</p>
         ) : !data?.enabled ? (

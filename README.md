@@ -1,5 +1,16 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Aufbau: zwei Apps
+
+- **Haupt-App** (dieses Verzeichnis): läuft **lokal** beim Inhaber, verschlüsselte
+  SQLite hinter Master-Passwort. Verwaltet Produkte, Ladungen, Abrechnungen.
+- **Verkäufer-Portal** (`portal-app/`): eigene, **öffentlich gehostete** App (Vercel
+  + Postgres), über die Verkäufer ihre Verkäufe per Link + PIN einreichen.
+
+Die Haupt-App **synchronisiert** mit dem Portal: sie lädt die offene Ware hoch und
+holt Einreichungen ab, die sie lokal als Abrechnung verbucht. Details:
+[`SECURITY.md`](./SECURITY.md) und [`portal-app/README.md`](./portal-app/README.md).
+
 ## Getting Started
 
 First, run the development server:

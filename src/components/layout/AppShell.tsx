@@ -13,10 +13,7 @@ import { Sidebar } from './Sidebar'
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
-  // Öffentliche Seiten ohne Owner-Sidebar / Master-Login: Entsperrseite und das
-  // Verkäufer-Portal (eigene Anmeldung per Link + PIN).
-  const isPublicPage = pathname === '/unlock' || pathname.startsWith('/portal/')
-  const isUnlockPage = isPublicPage
+  const isUnlockPage = pathname === '/unlock'
   const [status, setStatus] = useState<'checking' | 'unlocked' | 'locked'>('checking')
 
   useEffect(() => {
