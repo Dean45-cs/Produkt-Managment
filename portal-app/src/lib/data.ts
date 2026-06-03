@@ -211,3 +211,55 @@ export async function ackSubmissions(results: AckResult[]): Promise<void> {
     )
   }
 }
+
+// ---------- Zugriffs-Protokoll (nur Owner sichtbar) ----------
+
+export type AccessEvent = 'OPEN' | 'LOGIN_OK' | 'LOGIN_FAIL' | 'SUBMIT'
+
+/** Best-effort: protokolliert einen Zugriff, ohne den normalen Ablauf zu stören. */
+export async function logAccess(e: {
+  supplierRef: string | null
+  token: string | null
+  event: AccessEvent
+  ip: string | null
+  userAgent: string | null
+}): Promise<void> {
+  try {
+    await q(
+      'INSERT INTO access_log (supplier_ref, token, event, ip, user_agent) VALUES ($1, $2, $3, $4, $5)',
+      [e.supplierRef, e.token, e.event, e.ip, e.userAgent]
+    )
+  } catch {
+    /* Logging darf nie den Hauptablauf brechen */
+  }
+}
+
+export interface AccessLogEntry {
+  id: string
+  supplierRef: string | null
+  event: AccessEvent
+  ip: string | null
+  userAgent: string | null
+  createdAt: string
+}
+
+export async function listAccessLog(opts: { supplierRef?: string; limit?: number }): Promise<AccessLogEntry[]> {
+  const limit = Math.min(opts.limit ?? 200, 1000)
+  const rows = opts.supplierRef
+    ? await q<{ id: string; supplier_ref: string | null; event: AccessEvent; ip: string | null; user_agent: string | null; created_at: Date }>(
+        'SELECT id, supplier_ref, event, ip, user_agent, created_at FROM access_log WHERE supplier_ref = $1 ORDER BY created_at DESC LIMIT $2',
+        [opts.supplierRef, limit]
+      )
+    : await q<{ id: string; supplier_ref: string | null; event: AccessEvent; ip: string | null; user_agent: string | null; created_at: Date }>(
+        'SELECT id, supplier_ref, event, ip, user_agent, created_at FROM access_log ORDER BY created_at DESC LIMIT $1',
+        [limit]
+      )
+  return rows.map((r) => ({
+    id: String(r.id),
+    supplierRef: r.supplier_ref,
+    event: r.event,
+    ip: r.ip,
+    userAgent: r.user_agent,
+    createdAt: new Date(r.created_at).toISOString(),
+  }))
+}

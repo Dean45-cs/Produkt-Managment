@@ -3,8 +3,9 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import crypto from 'crypto'
 import { euroToCents } from '@/lib/money'
-import { getSellerByToken, getOpenDeliveries, insertSubmission, type SubmissionItem } from '@/lib/data'
+import { getSellerByToken, getOpenDeliveries, insertSubmission, logAccess, type SubmissionItem } from '@/lib/data'
 import { PORTAL_COOKIE, cookieMatches } from '@/lib/auth'
+import { clientInfo } from '@/lib/client-info'
 
 interface InputItem {
   productId: string
@@ -64,6 +65,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
     reportedAt,
     note,
   })
+
+  const info = clientInfo(req)
+  void logAccess({ supplierRef: seller.supplierRef, token, event: 'SUBMIT', ip: info.ip, userAgent: info.userAgent })
 
   return NextResponse.json({ ok: true, status: 'RECEIVED' })
 }

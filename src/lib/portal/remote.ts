@@ -88,3 +88,22 @@ export async function ackSubmissions(results: AckResult[]): Promise<void> {
   const r = await call('/api/sync/ack', { method: 'POST', body: JSON.stringify({ results }) })
   if (!r.ok) throw new Error(`Bestätigung fehlgeschlagen (HTTP ${r.status})`)
 }
+
+export interface AccessLogEntry {
+  id: string
+  supplierRef: string | null
+  event: 'OPEN' | 'LOGIN_OK' | 'LOGIN_FAIL' | 'SUBMIT'
+  ip: string | null
+  userAgent: string | null
+  createdAt: string
+}
+
+export async function fetchAccessLog(params: { supplierRef?: string; limit?: number }): Promise<AccessLogEntry[]> {
+  const qs = new URLSearchParams()
+  if (params.supplierRef) qs.set('supplierRef', params.supplierRef)
+  if (params.limit) qs.set('limit', String(params.limit))
+  const r = await call(`/api/sync/access-log?${qs.toString()}`, { method: 'GET' })
+  if (!r.ok) throw new Error(`Zugriffe konnten nicht geladen werden (HTTP ${r.status})`)
+  const data = await r.json().catch(() => ({}))
+  return Array.isArray(data?.entries) ? data.entries : []
+}

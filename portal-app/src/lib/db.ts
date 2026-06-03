@@ -78,6 +78,16 @@ CREATE TABLE IF NOT EXISTS submission (
 );
 CREATE INDEX IF NOT EXISTS submission_portal_status ON submission(portal_status);
 CREATE INDEX IF NOT EXISTS submission_supplier ON submission(supplier_ref);
+CREATE TABLE IF NOT EXISTS access_log (
+  id           BIGSERIAL PRIMARY KEY,
+  supplier_ref TEXT,
+  token        TEXT,
+  event        TEXT NOT NULL,
+  ip           TEXT,
+  user_agent   TEXT,
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS access_log_supplier ON access_log(supplier_ref, created_at DESC);
 `
 
 export function ensureSchema(): Promise<void> {
