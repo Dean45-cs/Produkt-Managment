@@ -8,10 +8,33 @@ import { Pool, type PoolClient } from 'pg'
 
 const g = globalThis as unknown as { __portalPool?: Pool; __portalSchema?: Promise<void> }
 
+/**
+ * Verbindungs-String. Unterstützt sowohl die eigene Variable DATABASE_URL als
+ * auch die von Vercel Postgres / Neon automatisch gesetzten Namen. Die
+ * "non-pooling"-Variante wird bevorzugt (zuverlässig für Schema-Anlage/Transaktionen).
+ */
+function connectionString(): string | undefined {
+  return (
+    process.env.DATABASE_URL ||
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL
+  )
+}
+
 export function pool(): Pool {
   if (!g.__portalPool) {
-    if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL ist nicht gesetzt')
-    g.__portalPool = new Pool({ connectionString: process.env.DATABASE_URL, max: 5 })
+    const cs = connectionString()
+    if (!cs) {
+      throw new Error('Keine Datenbank-URL gesetzt (DATABASE_URL oder POSTGRES_URL). Ist eine Postgres-DB mit dem Vercel-Projekt verbunden?')
+    }
+    // SSL für gehostete DBs (Vercel/Neon), aber nicht für lokales Postgres.
+    const isLocal = /@(localhost|127\.0\.0\.1)(:|\/)/.test(cs)
+    g.__portalPool = new Pool({
+      connectionString: cs,
+      max: 5,
+      ssl: isLocal ? undefined : { rejectUnauthorized: false },
+    })
   }
   return g.__portalPool
 }
