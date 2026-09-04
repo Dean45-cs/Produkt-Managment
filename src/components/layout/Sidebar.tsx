@@ -18,6 +18,7 @@ import {
   Users,
   Coins,
   Inbox,
+  Wallet,
   Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -42,6 +43,12 @@ const navGroups: NavGroup[] = [
       { href: '/einreichungen', label: 'Portal-Eingang', icon: Inbox },
       { href: '/receivables', label: 'Offene Posten', icon: Coins },
       { href: '/returns', label: 'Retouren', icon: RotateCcw },
+    ],
+  },
+  {
+    heading: 'Geld',
+    items: [
+      { href: '/accounts', label: 'Kasse & Bank', icon: Wallet },
     ],
   },
   {
