@@ -16,6 +16,7 @@ import {
   BarChart3,
   RotateCcw,
   Users,
+  Layers,
   Coins,
   Inbox,
   Wallet,
@@ -62,6 +63,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/products', label: 'Produkte', icon: Package },
       { href: '/categories', label: 'Kategorien', icon: Tag },
+      { href: '/product-groups', label: 'Arten', icon: Layers },
       { href: '/suppliers', label: 'Verkäufer & Lieferanten', icon: Users },
       { href: '/inventory', label: 'Bestand', icon: Warehouse },
       { href: '/locations', label: 'Standorte', icon: MapPin },

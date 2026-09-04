@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { centsToDecimal, euroToCents } from '@/lib/money'
+import Link from 'next/link'
 import { ImagePlus, Loader2, X } from 'lucide-react'
 
 interface ProductFormData {
@@ -16,6 +17,8 @@ interface ProductFormData {
   sku: string
   description: string
   categoryId: string
+  groupId: string
+  variantName: string
   unit: string
   purchasePrice: number
   minStockLevel: number
@@ -37,6 +40,11 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
   const { data: categories = [] } = useQuery<Array<{ id: string; name: string }>>({
     queryKey: ['categories'],
     queryFn: () => fetch('/api/categories').then((r) => r.json()),
+  })
+
+  const { data: groups = [] } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ['product-groups'],
+    queryFn: () => fetch('/api/product-groups').then((r) => r.json()),
   })
 
   async function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -64,6 +72,8 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
       sku: defaultValues?.sku || '',
       description: defaultValues?.description || '',
       categoryId: defaultValues?.categoryId || '',
+      groupId: defaultValues?.groupId || '',
+      variantName: defaultValues?.variantName || '',
       unit: defaultValues?.unit || 'Stück',
       purchasePrice: defaultValues?.purchasePriceCt ? centsToDecimal(defaultValues.purchasePriceCt) : 0,
       minStockLevel: defaultValues?.minStockLevel || 0,
@@ -72,6 +82,12 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
     },
   })
 
+  // Vorschlag für den Anzeigenamen aus Art und Sorte. Der Name bleibt frei
+  // wählbar — vorgeschlagen wird nur, übernommen wird per Klick.
+  const selectedGroup = groups.find((g) => g.id === watch('groupId'))
+  const variant = watch('variantName')?.trim()
+  const suggestedName = selectedGroup && variant ? `${selectedGroup.name} – ${variant}` : ''
+
   function handleFormSubmit(data: ProductFormData) {
     onSubmit({
       name: data.name,
@@ -79,6 +95,8 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
       description: data.description,
       imageUrl,
       categoryId: data.categoryId || null,
+      groupId: data.groupId || null,
+      variantName: data.variantName || null,
       unit: data.unit,
       purchasePriceCt: euroToCents(data.purchasePrice),
       minStockLevel: Number(data.minStockLevel),
@@ -91,8 +109,43 @@ export function ProductForm({ defaultValues, onSubmit, isLoading }: Props) {
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4 max-w-lg">
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-1.5">
+          <Label>Art</Label>
+          <Select
+            value={watch('groupId') || 'none'}
+            onValueChange={(v) => setValue('groupId', v === 'none' ? '' : v)}
+          >
+            <SelectTrigger><SelectValue placeholder="Keine Art" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Keine Art</SelectItem>
+              {groups.map((g) => (
+                <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground">
+            Fasst mehrere Sorten zusammen — anlegen unter{' '}
+            <Link href="/product-groups" className="text-rose-600 hover:underline">Arten</Link>.
+          </p>
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="variantName">Sorte</Label>
+          <Input id="variantName" {...register('variantName')} placeholder="z.B. Hausmischung" />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-1.5">
           <Label htmlFor="name">Name *</Label>
           <Input id="name" {...register('name', { required: true })} />
+          {suggestedName && suggestedName !== watch('name') && (
+            <button
+              type="button"
+              onClick={() => setValue('name', suggestedName)}
+              className="text-xs text-rose-600 hover:underline"
+            >
+              „{suggestedName}“ übernehmen
+            </button>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="sku">SKU *</Label>
