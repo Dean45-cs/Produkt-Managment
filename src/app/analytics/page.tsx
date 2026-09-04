@@ -651,7 +651,7 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-red-600" /> Nachbestellen</CardTitle>
-                <p className="text-sm text-muted-foreground">Produkte auf oder unter dem Meldebestand — beim Großhändler nachordern.</p>
+                <p className="text-sm text-muted-foreground">Produkte auf oder unter dem Meldebestand — beim Lieferanten nachordern.</p>
               </CardHeader>
               <CardContent>
                 {!insights || insights.reorderList.length === 0 ? (

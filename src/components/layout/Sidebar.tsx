@@ -55,7 +55,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/products', label: 'Produkte', icon: Package },
       { href: '/categories', label: 'Kategorien', icon: Tag },
-      { href: '/suppliers', label: 'Verkäufer', icon: Users },
+      { href: '/suppliers', label: 'Verkäufer & Lieferanten', icon: Users },
       { href: '/inventory', label: 'Bestand', icon: Warehouse },
       { href: '/locations', label: 'Standorte', icon: MapPin },
     ],

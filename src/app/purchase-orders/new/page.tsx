@@ -25,17 +25,21 @@ interface OrderItem {
 export default function NewPurchaseOrderPage() {
   const router = useRouter()
   const qc = useQueryClient()
-  const [wholesaler, setWholesaler] = useState('')
+  const [supplierId, setSupplierId] = useState('')
   const [notes, setNotes] = useState('')
   const [items, setItems] = useState<OrderItem[]>([{ productId: '', quantityOrdered: 1, unitPriceCt: 0 }])
 
+  const { data: wholesalers = [] } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ['suppliers', 'wholesaler'],
+    queryFn: () => fetch('/api/suppliers?role=wholesaler').then((r) => r.json()),
+  })
   const { data: products = [] } = useQuery<Array<{ id: string; name: string; sku: string; purchasePriceCt: number }>>({
     queryKey: ['products'],
     queryFn: () => fetch('/api/products').then((r) => r.json()),
   })
 
   const mutation = useMutation({
-    mutationFn: async (data: { notes: string; items: OrderItem[] }) => {
+    mutationFn: async (data: { supplierId: string | null; notes: string; items: OrderItem[] }) => {
       const res = await apiFetch('/api/purchase-orders', jsonInit(data))
       return res.json()
     },
@@ -73,15 +77,12 @@ export default function NewPurchaseOrderPage() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const combinedNotes = wholesaler.trim()
-      ? `Großhändler: ${wholesaler.trim()}${notes.trim() ? `\n${notes.trim()}` : ''}`
-      : notes
-    mutation.mutate({ notes: combinedNotes, items })
+    mutation.mutate({ supplierId: supplierId || null, notes, items })
   }
 
   return (
     <div>
-      <PageHeader title="Neue Einkaufsbestellung" description="Ware beim Großhändler bestellen. Beim Wareneingang ('Erhalten') steigt dein Bestand." />
+      <PageHeader title="Neue Einkaufsbestellung" description="Ware beim Lieferanten bestellen. Beim Wareneingang ('Erhalten') steigt dein Bestand." />
 
       {products.length === 0 && (
         <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
@@ -101,8 +102,23 @@ export default function NewPurchaseOrderPage() {
           <CardHeader><CardTitle>Allgemein</CardTitle></CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Großhändler (optional)</Label>
-              <Input value={wholesaler} onChange={(e) => setWholesaler(e.target.value)} placeholder="z.B. Metro, Bäckerei Müller..." />
+              <Label>Lieferant (optional)</Label>
+              {wholesalers.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Noch kein Lieferant angelegt —{' '}
+                  <Link href="/suppliers" className="font-medium text-rose-600 underline hover:text-rose-700">
+                    jetzt anlegen →
+                  </Link>{' '}
+                  (Häkchen „Lieferant“ setzen). Ohne Lieferant kannst du trotzdem bestellen.
+                </p>
+              ) : (
+                <Select value={supplierId} onValueChange={setSupplierId}>
+                  <SelectTrigger><SelectValue placeholder="Lieferant wählen..." /></SelectTrigger>
+                  <SelectContent>
+                    {wholesalers.map((w) => <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Notizen</Label>

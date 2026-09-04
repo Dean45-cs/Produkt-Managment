@@ -48,7 +48,7 @@ export default function PurchaseOrdersPage() {
   return (
     <div>
       <PageHeader
-        title="Einkauf beim Großhändler"
+        title="Einkauf beim Lieferanten"
         description="Ware einkaufen → beim Wareneingang ('Erhalten') steigt dein Lagerbestand"
         actions={
           <Link href="/purchase-orders/new">
@@ -62,7 +62,7 @@ export default function PurchaseOrdersPage() {
           <EmptyState
             icon={ShoppingCart}
             title="Noch keine Bestellungen"
-            description="Bestelle Ware bei deinem Großhändler. Beim Wareneingang („Erhalten“) wird dein Lagerbestand automatisch erhöht."
+            description="Bestelle Ware bei deinem Lieferanten. Beim Wareneingang („Erhalten“) wird dein Lagerbestand automatisch erhöht."
             actionHref="/purchase-orders/new"
             actionLabel="Erste Bestellung anlegen"
           />
@@ -74,7 +74,7 @@ export default function PurchaseOrdersPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Erstellt</TableHead>
-                <TableHead>Großhändler</TableHead>
+                <TableHead>Lieferant</TableHead>
                 <TableHead>Positionen</TableHead>
                 <TableHead>Bestellt am</TableHead>
                 <TableHead>Status</TableHead>

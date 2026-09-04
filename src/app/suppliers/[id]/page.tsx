@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
 import { DELIVERY_STATUS_LABELS, DELIVERY_STATUS_VARIANTS } from '@/lib/delivery'
+import { DEFAULT_SETTLE_DAYS, roleLabel } from '@/lib/contact'
 import { SellerPortalCard } from '@/components/features/SellerPortalCard'
 import { SellerAccessLog } from '@/components/features/SellerAccessLog'
 import {
@@ -19,7 +20,11 @@ import {
 import type { ElementType } from 'react'
 
 interface Overview {
-  supplier: { id: string; name: string; contactName?: string | null; email?: string | null; phone?: string | null; address?: string | null; notes?: string | null }
+  supplier: {
+    id: string; name: string; contactName?: string | null; email?: string | null
+    phone?: string | null; address?: string | null; notes?: string | null
+    isSeller: boolean; isWholesaler: boolean; expectedSettleDays?: number | null
+  }
   stats: {
     revenue: number; cost: number; profit: number; marginPct: number; avgPriceCt: number
     quantity: number; unitsDelivered: number; sellThroughPct: number; avgCycleDays: number | null
@@ -67,7 +72,7 @@ export default function SupplierDetailPage() {
   })
 
   if (isLoading) return <div className="p-4 text-muted-foreground">Laden...</div>
-  if (!data || !data.supplier) return <div className="p-4">Verkäufer nicht gefunden</div>
+  if (!data || !data.supplier) return <div className="p-4">Kontakt nicht gefunden</div>
 
   const { supplier: s, stats, deliveries, settlements } = data
   const openDeliveries = deliveries.filter((d) => d.totalOpen > 0)
@@ -77,7 +82,7 @@ export default function SupplierDetailPage() {
     <div>
       <PageHeader
         title={s.name}
-        description="Verkäufer im Außendienst"
+        description={roleLabel(s)}
         actions={
           <div className="flex items-center gap-2">
             <Link href="/suppliers"><Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4" /> Zurück</Button></Link>
@@ -85,6 +90,17 @@ export default function SupplierDetailPage() {
           </div>
         }
       />
+
+      {/* Rollen */}
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        {s.isSeller && <Badge variant="info">Verkäufer</Badge>}
+        {s.isWholesaler && <Badge variant="secondary">Lieferant</Badge>}
+        {s.isSeller && (
+          <span className="text-xs text-muted-foreground">
+            Abrechnung erwartet nach {s.expectedSettleDays ?? DEFAULT_SETTLE_DAYS} Tagen
+          </span>
+        )}
+      </div>
 
       {/* Kontakt */}
       {(s.contactName || s.email || s.phone || s.address) && (
@@ -116,11 +132,13 @@ export default function SupplierDetailPage() {
         <Kpi icon={Truck} label="Ladungen" value={stats.deliveryCount} sub={`${stats.settlementCount} Abrechnungen`} />
       </div>
 
-      {/* Verkäufer-Portal-Zugang */}
-      <SellerPortalCard supplierId={s.id} />
-
-      {/* Zugriffs-Protokoll (nur Owner) */}
-      <SellerAccessLog supplierId={s.id} />
+      {/* Verkäufer-Portal-Zugang – nur sinnvoll, wenn der Kontakt für dich verkauft */}
+      {s.isSeller && (
+        <>
+          <SellerPortalCard supplierId={s.id} />
+          <SellerAccessLog supplierId={s.id} />
+        </>
+      )}
 
       {/* Offene Ladungen */}
       <Card className="mb-6">

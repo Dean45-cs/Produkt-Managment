@@ -32,8 +32,8 @@ export default function NewDeliveryPage() {
   const [items, setItems] = useState<DeliveryItem[]>([{ productId: '', locationId: '', quantitySent: 1, expectedPriceCt: 0, batchNumber: '' }])
 
   const { data: suppliers = [] } = useQuery<Array<{ id: string; name: string }>>({
-    queryKey: ['suppliers'],
-    queryFn: () => fetch('/api/suppliers').then((r) => r.json()),
+    queryKey: ['suppliers', 'seller'],
+    queryFn: () => fetch('/api/suppliers?role=seller').then((r) => r.json()),
   })
   const { data: products = [] } = useQuery<Array<{ id: string; name: string; sku: string; purchasePriceCt: number }>>({
     queryKey: ['products'],

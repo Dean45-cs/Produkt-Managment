@@ -164,7 +164,7 @@ export default function DashboardPage() {
           <div className="px-4 py-3 flex items-start gap-3">
             <span className="mt-0.5 w-6 h-6 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
             <div>
-              <p className="font-semibold text-sm">Einkauf beim Großhändler</p>
+              <p className="font-semibold text-sm">Einkauf beim Lieferanten</p>
               <p className="text-xs text-muted-foreground mt-0.5">Ware bestellen → beim Empfang steigt dein Bestand</p>
               <Link href="/purchase-orders/new" className="mt-1.5 inline-block text-xs text-rose-600 font-medium hover:underline">+ Neue Bestellung →</Link>
             </div>

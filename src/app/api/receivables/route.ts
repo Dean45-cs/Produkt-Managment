@@ -2,17 +2,18 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { deliveryProgress } from '@/lib/delivery'
+import { DEFAULT_SETTLE_DAYS } from '@/lib/contact'
 
 /**
  * Offene Posten: Welche Ware liegt noch bei welchem Verkäufer und ist noch
  * nicht abgerechnet? Gruppiert je Verkäufer, mit Wert der offenen Ware und
- * Alter der Ladung. Ladungen, die länger als 3 Tage draußen sind, gelten als
- * überfällig (Verkäufer kommen normalerweise alle 1–3 Tage).
+ * Alter der Ladung. Überfällig ist eine Ladung, wenn sie länger draußen ist
+ * als die beim Verkäufer hinterlegte Frist – die Zeiträume sind je Verkäufer
+ * unterschiedlich, deshalb ist DEFAULT_SETTLE_DAYS nur der Rückfallwert.
  */
 export async function GET() {
   const DAY = 24 * 60 * 60 * 1000
   const now = Date.now()
-  const OVERDUE_DAYS = 3
 
   const deliveries = await prisma.delivery.findMany({
     where: { status: { in: ['DELIVERED', 'PARTIALLY_SETTLED'] } },
@@ -38,7 +39,7 @@ export async function GET() {
     daysOut: number; openUnits: number; openValueCt: number; status: string; overdue: boolean
   }
   interface SupplierBucket {
-    supplierId: string; name: string
+    supplierId: string; name: string; settleDays: number
     openUnits: number; openValueCt: number; oldestDaysOut: number; overdue: boolean
     deliveries: OpenDelivery[]
   }
@@ -61,7 +62,8 @@ export async function GET() {
 
     const refDate = d.deliveryDate ?? d.createdAt
     const daysOut = Math.floor((now - refDate.getTime()) / DAY)
-    const overdue = daysOut > OVERDUE_DAYS
+    const settleDays = d.supplier.expectedSettleDays ?? DEFAULT_SETTLE_DAYS
+    const overdue = daysOut > settleDays
     if (overdue) overdueCount += 1
     totalOpenValueCt += openValue
     totalOpenUnits += prog.totalOpen
@@ -69,7 +71,7 @@ export async function GET() {
     const sup = d.supplier
     let agg = bySupplier.get(sup.id)
     if (!agg) {
-      agg = { supplierId: sup.id, name: sup.name, openUnits: 0, openValueCt: 0, oldestDaysOut: 0, overdue: false, deliveries: [] }
+      agg = { supplierId: sup.id, name: sup.name, settleDays, openUnits: 0, openValueCt: 0, oldestDaysOut: 0, overdue: false, deliveries: [] }
       bySupplier.set(sup.id, agg)
     }
     agg.openUnits += prog.totalOpen
