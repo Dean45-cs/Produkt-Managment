@@ -17,7 +17,6 @@ import {
   RotateCcw,
   Users,
   Coins,
-  Inbox,
   Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -39,7 +38,6 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/deliveries', label: 'Ladungen', icon: Truck },
       { href: '/settlements', label: 'Abrechnungen', icon: PackageCheck },
-      { href: '/einreichungen', label: 'Portal-Eingang', icon: Inbox },
       { href: '/receivables', label: 'Offene Posten', icon: Coins },
       { href: '/returns', label: 'Retouren', icon: RotateCcw },
     ],
