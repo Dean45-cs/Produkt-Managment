@@ -7,9 +7,7 @@ import { deliveryProgress, nextDeliveryStatus, DELIVERY_STATUS } from '@/lib/del
  * den Folgestatus der Ladung – alles in einer Transaktion (schützt vor
  * Race-Conditions bei gleichzeitigen Teilabrechnungen).
  *
- * Wird genutzt von:
- *  - der Owner-Route POST /api/deliveries/[id]/settle
- *  - der automatischen Verbuchung eingereichter Verkäufe aus dem Portal
+ * Wird genutzt von der Owner-Route POST /api/deliveries/[id]/settle.
  */
 
 export interface SettleItemInput {

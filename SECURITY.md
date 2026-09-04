@@ -60,33 +60,11 @@ Neue Migrationen entwickelst du wie bisher (SQL-Datei in `prisma/migrations/`);
 sie werden beim nächsten Entsperren angewandt. `npx prisma migrate deploy` gegen
 die verschlüsselte Datei ist **nicht** mehr nötig/möglich.
 
-## Verkäufer-Portal (zwei getrennte Apps)
+## Keine Außenanbindung
 
-Das Verkäufer-Portal ist eine **eigene, öffentlich gehostete App** (`portal-app/`,
-z.B. auf Vercel, mit Postgres). Die **Haupt-App bleibt lokal** und ist die einzige,
-die echte Abrechnungen bucht. Beide sprechen nur über eine kleine Sync-Schnittstelle
-miteinander.
-
-- **Verkäufer-Zugang (Portal-App):** persönlicher Link mit langem Zufalls-Token
-  (≈192 Bit) + PIN (scrypt-gehasht, Rate-Limit nach 5 Fehlversuchen). Nach
-  PIN-Eingabe ein signiertes Cookie. Die Portal-App **bucht nichts** – sie nimmt
-  Einreichungen nur entgegen.
-- **Sync (nur Haupt-App → Portal-App):** geschützt per gemeinsamem Geheimnis
-  `SYNC_SECRET` (Header `x-sync-secret`). Die Haupt-App **pusht** Zugänge + offene
-  Ware und **holt** Einreichungen ab, verbucht sie lokal über dieselbe geprüfte
-  Abrechnungslogik (Mengen gegen offene Ware validiert; Überverkäufe → „Problem")
-  und **meldet das Ergebnis zurück**. `/api/sync/*` ist ohne Secret nicht nutzbar.
-- **Owner-Verwaltung** (`/api/portal-admin/...`, Portal aktivieren, Link/PIN) bleibt
-  hinter dem Master-Passwort.
-- **Trennung der Daten:** Deine vollständige, sensible Geschäftsdatenbank (`dev.db`)
-  verlässt **nie** den lokalen Rechner. In der gehosteten Portal-DB liegen nur:
-  Verkäufer-Zugänge (Token/PIN-Hash), ein Ausschnitt der offenen Ware und die
-  Einreichungen – das Nötigste, damit Verkäufer einreichen können.
-- **Lokaler Owner-Speicher:** `portal.db` (eigener Schlüssel `PORTAL_SECRET`, fällt
-  auf `SESSION_SECRET` zurück) hält nur die Verkäufer-Zugänge und das Protokoll der
-  abgeholten Einreichungen. `portal.db` ist wie `dev.db` in `.gitignore`.
-
-Deploy-Anleitung für die Portal-App: siehe `portal-app/README.md`.
+Die App ist eine reine **lokale** Anwendung: Es gibt keinen Sync und keine
+gehostete Gegenstelle. Alle Daten bleiben in der verschlüsselten `dev.db` auf
+deinem Rechner; Abrechnungen erfasst du selbst in der App.
 
 ## Was geschützt ist – und was nicht
 
