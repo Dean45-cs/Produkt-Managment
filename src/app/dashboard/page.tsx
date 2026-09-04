@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { centsToEuro } from '@/lib/money'
 import { formatDate } from '@/lib/utils'
-import { TrendingUp, Package, AlertTriangle, Euro, Truck, TrendingDown } from 'lucide-react'
+import { TrendingUp, Package, AlertTriangle, Euro, Truck, TrendingDown, Banknote, Landmark, Coins } from 'lucide-react'
 import {
   BarChart,
   Bar,
@@ -20,6 +20,8 @@ import {
 } from 'recharts'
 
 interface DashboardData {
+  cashCt: number
+  reserveCt: number
   totalInventoryValue: number
   pendingDeliveriesCount: number
   pendingDeliveries: Array<{
@@ -79,6 +81,7 @@ function KpiCard({
 
 interface ReceivablesSummary {
   totalOpenValueCt: number
+  totalOpenUnits: number
   overdueCount: number
 }
 
@@ -160,11 +163,11 @@ export default function DashboardPage() {
         <div className="px-4 py-2.5 border-b bg-muted/30">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dein Arbeitsablauf</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x">
           <div className="px-4 py-3 flex items-start gap-3">
             <span className="mt-0.5 w-6 h-6 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
             <div>
-              <p className="font-semibold text-sm">Einkauf beim Großhändler</p>
+              <p className="font-semibold text-sm">Einkauf beim Lieferanten</p>
               <p className="text-xs text-muted-foreground mt-0.5">Ware bestellen → beim Empfang steigt dein Bestand</p>
               <Link href="/purchase-orders/new" className="mt-1.5 inline-block text-xs text-rose-600 font-medium hover:underline">+ Neue Bestellung →</Link>
             </div>
@@ -185,7 +188,42 @@ export default function DashboardPage() {
               <Link href="/deliveries" className="mt-1.5 inline-block text-xs text-rose-600 font-medium hover:underline">Zu den Ladungen →</Link>
             </div>
           </div>
+          <div className="px-4 py-3 flex items-start gap-3">
+            <span className="mt-0.5 w-6 h-6 rounded-full bg-rose-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
+            <div>
+              <p className="font-semibold text-sm">Geld verbuchen</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Einnahme in die Kasse → Rücklage auf die Bank, Rest ausgeben</p>
+              <Link href="/accounts" className="mt-1.5 inline-block text-xs text-rose-600 font-medium hover:underline">Zu Kasse &amp; Bank →</Link>
+            </div>
+          </div>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <KpiCard
+          title="Kassenbestand"
+          value={centsToEuro(data?.cashCt || 0)}
+          icon={Banknote}
+          sub="Frei verfügbares Geld"
+        />
+        <KpiCard
+          title="Rücklage (Bank)"
+          value={centsToEuro(data?.reserveCt || 0)}
+          icon={Landmark}
+          variant="success"
+          sub="Für die nächste Bestellung"
+        />
+        <KpiCard
+          title="Umsatz (Monat)"
+          value={centsToEuro(data?.monthRevenue || 0)}
+          icon={Euro}
+        />
+        <KpiCard
+          title="Gewinn (Monat)"
+          value={centsToEuro(data?.monthProfit || 0)}
+          icon={data?.monthProfit && data.monthProfit > 0 ? TrendingUp : TrendingDown}
+          variant={data?.monthProfit && data.monthProfit > 0 ? 'success' : 'danger'}
+        />
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -196,16 +234,11 @@ export default function DashboardPage() {
           sub="Einkaufspreise × Menge"
         />
         <KpiCard
-          title="Umsatz (Monat)"
-          value={centsToEuro(data?.monthRevenue || 0)}
-          icon={Euro}
-          variant="success"
-        />
-        <KpiCard
-          title="Gewinn (Monat)"
-          value={centsToEuro(data?.monthProfit || 0)}
-          icon={data?.monthProfit && data.monthProfit > 0 ? TrendingUp : TrendingDown}
-          variant={data?.monthProfit && data.monthProfit > 0 ? 'success' : 'danger'}
+          title="Ware unterwegs"
+          value={centsToEuro(receivables?.totalOpenValueCt || 0)}
+          icon={Coins}
+          variant={receivables?.totalOpenUnits ? 'warning' : 'default'}
+          sub={`${receivables?.totalOpenUnits || 0} Stück bei Verkäufern`}
         />
         <KpiCard
           title="Offene Ladungen"

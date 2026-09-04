@@ -16,8 +16,10 @@ import {
   BarChart3,
   RotateCcw,
   Users,
+  Layers,
   Coins,
   Inbox,
+  Wallet,
   Lock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -45,6 +47,12 @@ const navGroups: NavGroup[] = [
     ],
   },
   {
+    heading: 'Geld',
+    items: [
+      { href: '/accounts', label: 'Kasse & Bank', icon: Wallet },
+    ],
+  },
+  {
     heading: 'Einkauf',
     items: [
       { href: '/purchase-orders', label: 'Bestellungen', icon: ShoppingCart },
@@ -55,7 +63,8 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/products', label: 'Produkte', icon: Package },
       { href: '/categories', label: 'Kategorien', icon: Tag },
-      { href: '/suppliers', label: 'Verkäufer', icon: Users },
+      { href: '/product-groups', label: 'Arten', icon: Layers },
+      { href: '/suppliers', label: 'Verkäufer & Lieferanten', icon: Users },
       { href: '/inventory', label: 'Bestand', icon: Warehouse },
       { href: '/locations', label: 'Standorte', icon: MapPin },
     ],

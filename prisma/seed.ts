@@ -31,6 +31,7 @@ async function main() {
   console.log('Seeding database...')
 
   // Clear existing data
+  await prisma.bookEntry.deleteMany()
   await prisma.review.deleteMany()
   await prisma.returnItem.deleteMany()
   await prisma.return.deleteMany()
@@ -43,6 +44,7 @@ async function main() {
   await prisma.stockAdjustment.deleteMany()
   await prisma.inventory.deleteMany()
   await prisma.product.deleteMany()
+  await prisma.productGroup.deleteMany()
   await prisma.supplier.deleteMany()
   await prisma.location.deleteMany()
   await prisma.category.deleteMany()
@@ -55,14 +57,20 @@ async function main() {
   const loc1 = await prisma.location.create({ data: { name: 'Hauptlager Berlin', type: 'WAREHOUSE', address: 'Musterstraße 1, 10115 Berlin' } })
   const loc2 = await prisma.location.create({ data: { name: 'Außenlager Hamburg', type: 'WAREHOUSE', address: 'Hafenweg 5, 20457 Hamburg' } })
 
-  // Suppliers (zwei Distributoren für den Vergleich)
-  const sup1 = await prisma.supplier.create({ data: { name: 'TechDistribution GmbH', contactName: 'Max Müller', email: 'max@techdist.de', phone: '030 1234567' } })
-  const sup2 = await prisma.supplier.create({ data: { name: 'ElektroHandel Nord', contactName: 'Sabine Klein', email: 'klein@elektronord.de', phone: '040 7654321' } })
+  // Kontakte: zwei Verkäufer im Außendienst (für den Vergleich) und ein
+  // Lieferant, bei dem eingekauft wird.
+  const sup1 = await prisma.supplier.create({ data: { name: 'TechDistribution GmbH', contactName: 'Max Müller', email: 'max@techdist.de', phone: '030 1234567', isSeller: true, isWholesaler: false, expectedSettleDays: 3 } })
+  const sup2 = await prisma.supplier.create({ data: { name: 'ElektroHandel Nord', contactName: 'Sabine Klein', email: 'klein@elektronord.de', phone: '040 7654321', isSeller: true, isWholesaler: false, expectedSettleDays: 7 } })
+  await prisma.supplier.create({ data: { name: 'Metro Großmarkt', contactName: 'Einkauf', email: 'einkauf@metro.example', isSeller: false, isWholesaler: true } })
 
-  // Products
-  const prod1 = await prisma.product.create({ data: { name: 'HDMI Kabel 2m', sku: 'HDMI-001', categoryId: cat2.id, unit: 'Stück', purchasePriceCt: 599, minStockLevel: 20, reorderPoint: 50, reorderQty: 100 } })
-  const prod2 = await prisma.product.create({ data: { name: 'USB Hub 4-Port', sku: 'USB-HUB-4P', categoryId: cat1.id, unit: 'Stück', purchasePriceCt: 1299, minStockLevel: 10, reorderPoint: 25, reorderQty: 50 } })
-  const prod3 = await prisma.product.create({ data: { name: 'Wireless Maus', sku: 'MOUSE-WL-01', categoryId: cat1.id, unit: 'Stück', purchasePriceCt: 2499, minStockLevel: 5, reorderPoint: 15, reorderQty: 30 } })
+  // Arten (fassen Sorten zusammen)
+  const grpKabel = await prisma.productGroup.create({ data: { name: 'Kabel', description: 'Alle Kabel-Sorten', categoryId: cat2.id } })
+  const grpPeripherie = await prisma.productGroup.create({ data: { name: 'Peripherie', description: 'Zubehör am Rechner', categoryId: cat1.id } })
+
+  // Products (= die einzelnen Sorten)
+  const prod1 = await prisma.product.create({ data: { name: 'Kabel – HDMI 2m', sku: 'HDMI-001', categoryId: cat2.id, groupId: grpKabel.id, variantName: 'HDMI 2m', unit: 'Stück', purchasePriceCt: 599, minStockLevel: 20, reorderPoint: 50, reorderQty: 100 } })
+  const prod2 = await prisma.product.create({ data: { name: 'Peripherie – USB Hub 4-Port', sku: 'USB-HUB-4P', categoryId: cat1.id, groupId: grpPeripherie.id, variantName: 'USB Hub 4-Port', unit: 'Stück', purchasePriceCt: 1299, minStockLevel: 10, reorderPoint: 25, reorderQty: 50 } })
+  const prod3 = await prisma.product.create({ data: { name: 'Peripherie – Wireless Maus', sku: 'MOUSE-WL-01', categoryId: cat1.id, groupId: grpPeripherie.id, variantName: 'Wireless Maus', unit: 'Stück', purchasePriceCt: 2499, minStockLevel: 5, reorderPoint: 15, reorderQty: 30 } })
 
   // Initial inventory
   await prisma.inventory.createMany({ data: [
@@ -174,7 +182,30 @@ async function main() {
     { productId: prod3.id, rating: 4, customerName: 'Stefan W.', comment: 'Sehr gut, Akku hält lange.', createdAt: new Date('2026-05-20') },
   ] })
 
-  console.log('Seed complete! Kategorien, Standorte, Lieferanten, Produkte, Bestand und Demo-Abrechnungen angelegt.')
+  // Konten: die Migration legt sie an, der Seed stellt sie sicher wieder her
+  // (deleteMany oben räumt nur die Buchungen weg).
+  const kasse = await prisma.account.upsert({
+    where: { id: 'acc_kasse' },
+    update: {},
+    create: { id: 'acc_kasse', name: 'Kasse', kind: 'CASH', isReserve: false, sortOrder: 0, notes: 'Bargeld, das von den Verkäufern reinkommt.' },
+  })
+  const bank = await prisma.account.upsert({
+    where: { id: 'acc_bank' },
+    update: {},
+    create: { id: 'acc_bank', name: 'Bank (Rücklage)', kind: 'BANK', isReserve: true, sortOrder: 1, notes: 'Wird nicht angerührt – Geld für die nächste Bestellung.' },
+  })
+
+  // Beispiel-Geldlauf: Einnahme in die Kasse, Rücklage auf die Bank,
+  // eine Ausgabe zwischendurch.
+  const transferId = 'seed-transfer-1'
+  await prisma.bookEntry.createMany({ data: [
+    { accountId: kasse.id, bookedAt: new Date('2026-05-11'), amountCt: 400000, kind: 'INCOME', category: 'SALE', note: 'Abrechnung Mai' },
+    { accountId: kasse.id, bookedAt: new Date('2026-05-12'), amountCt: -250000, kind: 'TRANSFER', note: 'Rücklage nächste Bestellung', transferId },
+    { accountId: bank.id, bookedAt: new Date('2026-05-12'), amountCt: 250000, kind: 'TRANSFER', note: 'Rücklage nächste Bestellung', transferId },
+    { accountId: kasse.id, bookedAt: new Date('2026-05-14'), amountCt: -35000, kind: 'EXPENSE', category: 'FUN', note: 'Essen zwischendurch' },
+  ] })
+
+  console.log('Seed complete! Kategorien, Arten/Sorten, Standorte, Verkäufer & Lieferant, Bestand, Demo-Abrechnungen sowie Kasse/Bank mit Beispielbuchungen angelegt.')
 }
 
 main()

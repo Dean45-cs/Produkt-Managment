@@ -14,6 +14,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     where: { id },
     include: {
       category: true,
+      group: true,
       inventory: { include: { location: true } },
       stockAdjustments: { orderBy: { createdAt: 'desc' }, take: 20, include: { location: true } },
       settlementItems: {
@@ -31,7 +32,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const body = await req.json()
-  const { name, sku, description, imageUrl, categoryId, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
+  const { name, sku, description, imageUrl, categoryId, groupId, variantName, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
   if (!name?.trim() || !sku?.trim()) {
     return NextResponse.json({ error: 'Name and SKU required' }, { status: 400 })
   }
@@ -44,13 +45,15 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         description,
         imageUrl: imageUrl || null,
         categoryId: categoryId || null,
+        groupId: groupId || null,
+        variantName: variantName?.trim() || null,
         unit,
         purchasePriceCt: intOrZero(purchasePriceCt),
         minStockLevel: intOrZero(minStockLevel),
         reorderPoint: intOrZero(reorderPoint),
         reorderQty: intOrZero(reorderQty),
       },
-      include: { category: true },
+      include: { category: true, group: true },
     })
     return NextResponse.json(product)
   } catch (err) {

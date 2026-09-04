@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { deliveryProgress } from '@/lib/delivery'
+import { DEFAULT_SETTLE_DAYS } from '@/lib/contact'
 
 /**
  * Komplettübersicht für einen Verkäufer (Detailseite):
@@ -15,6 +16,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 
   const supplier = await prisma.supplier.findUnique({ where: { id } })
   if (!supplier) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  // Frist dieses Verkäufers – die Zeiträume sind je Verkäufer unterschiedlich.
+  const settleDays = supplier.expectedSettleDays ?? DEFAULT_SETTLE_DAYS
 
   const deliveries = await prisma.delivery.findMany({
     where: { supplierId: id },
@@ -87,7 +90,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
       settledAmountCt: prog.amountSettledCt,
       openValueCt: dOpenValue,
       daysOut,
-      overdue: daysOut != null && daysOut > 3,
+      overdue: daysOut != null && daysOut > settleDays,
     }
   })
 

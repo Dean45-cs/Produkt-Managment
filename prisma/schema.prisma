@@ -15,6 +15,7 @@ model Category {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   products    Product[]
+  productGroups ProductGroup[]
 }
 
 model Location {
@@ -39,10 +40,30 @@ model Supplier {
   phone          String?
   address        String?
   notes          String?
+  // Rollen: derselbe Kontakt kann Verkäufer (Außendienst) und/oder Lieferant
+  // (Großhändler, bei dem eingekauft wird) sein.
+  isSeller       Boolean         @default(true)
+  isWholesaler   Boolean         @default(false)
+  // Nach wie vielen Tagen erwartest du von diesem Verkäufer die Abrechnung?
+  // null → globaler Standardwert (siehe DEFAULT_SETTLE_DAYS).
+  expectedSettleDays Int?
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @updatedAt
   deliveries     Delivery[]
   purchaseOrders PurchaseOrder[]
+}
+
+/// Eine "Art" von Ware (z.B. Kaffee). Darunter hängen die einzelnen Sorten,
+/// die weiterhin ganz normale Produkte mit eigenem Bestand und Preis sind.
+model ProductGroup {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  products    Product[]
 }
 
 model Product {
@@ -53,6 +74,10 @@ model Product {
   imageUrl           String?
   categoryId         String?
   category           Category?           @relation(fields: [categoryId], references: [id])
+  groupId            String?
+  group              ProductGroup?       @relation(fields: [groupId], references: [id])
+  /// Bezeichnung der Sorte innerhalb der Art (z.B. "Hausmischung").
+  variantName        String?
   unit               String              @default("Stück")
   purchasePriceCt    Int                 @default(0)
   minStockLevel      Int                 @default(0)
@@ -145,6 +170,7 @@ model Settlement {
   createdAt     DateTime         @default(now())
   updatedAt     DateTime         @updatedAt
   items         SettlementItem[]
+  bookEntries   BookEntry[]
 
   @@index([deliveryId])
 }
@@ -172,6 +198,7 @@ model PurchaseOrder {
   createdAt   DateTime            @default(now())
   updatedAt   DateTime            @updatedAt
   items       PurchaseOrderItem[]
+  bookEntries BookEntry[]
 }
 
 model PurchaseOrderItem {
@@ -207,4 +234,47 @@ model ReturnItem {
   locationId       String
   location         Location @relation(fields: [locationId], references: [id])
   quantityReturned Int
+}
+
+/// Ein Geldtopf: die Kasse (Bargeld, das reinkommt) oder die Bank
+/// (Rücklage, die für die nächste Bestellung nicht angerührt wird).
+/// Der Saldo wird nicht gespeichert, sondern immer aus den Buchungen summiert.
+model Account {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  kind      String      @default("CASH") // CASH | BANK
+  /// true = "nicht anrühren", Rücklage für den nächsten Einkauf.
+  isReserve Boolean     @default(false)
+  notes     String?
+  sortOrder Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  entries   BookEntry[]
+}
+
+/// Eine einzelne Geldbewegung auf einem Konto. Wird ausschließlich von Hand
+/// erfasst – es bucht sich nichts automatisch. Eine Umbuchung besteht aus zwei
+/// gespiegelten Zeilen, die sich dieselbe transferId teilen.
+model BookEntry {
+  id              String         @id @default(cuid())
+  accountId       String
+  account         Account        @relation(fields: [accountId], references: [id])
+  bookedAt        DateTime       @default(now())
+  /// Positiv = Zugang, negativ = Abgang.
+  amountCt        Int
+  kind            String // INCOME | EXPENSE | TRANSFER
+  category        String? // SALE | PURCHASE | FUN | OTHER
+  /// Freitext, z.B. wer das Geld ausgegeben hat (gemeinsames Konto).
+  note            String?
+  transferId      String?
+  settlementId    String?
+  settlement      Settlement?    @relation(fields: [settlementId], references: [id])
+  purchaseOrderId String?
+  purchaseOrder   PurchaseOrder? @relation(fields: [purchaseOrderId], references: [id])
+  createdAt       DateTime       @default(now())
+
+  @@index([accountId, bookedAt])
+  @@index([transferId])
+  @@index([settlementId])
+  @@index([purchaseOrderId])
 }

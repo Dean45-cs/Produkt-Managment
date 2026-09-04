@@ -12,19 +12,22 @@ function intOrZero(v: unknown): number {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const categoryId = searchParams.get('categoryId')
+  const groupId = searchParams.get('groupId')
   const search = searchParams.get('search')
 
   const products = await prisma.product.findMany({
     where: {
       isActive: true,
       ...(categoryId ? { categoryId } : {}),
+      ...(groupId ? { groupId } : {}),
       ...(search ? { name: { contains: search } } : {}),
     },
     include: {
       category: true,
+      group: true,
       inventory: { include: { location: true } },
     },
-    orderBy: { name: 'asc' },
+    orderBy: [{ group: { name: 'asc' } }, { name: 'asc' }],
   })
 
   const enriched = products.map((p) => ({
@@ -38,7 +41,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const body = await req.json()
-  const { name, sku, description, imageUrl, categoryId, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
+  const { name, sku, description, imageUrl, categoryId, groupId, variantName, unit, purchasePriceCt, minStockLevel, reorderPoint, reorderQty } = body
   if (!name?.trim() || !sku?.trim()) return NextResponse.json({ error: 'Name and SKU required' }, { status: 400 })
 
   try {
@@ -49,13 +52,15 @@ export async function POST(req: Request) {
         description,
         imageUrl: imageUrl || null,
         categoryId: categoryId || null,
+        groupId: groupId || null,
+        variantName: variantName?.trim() || null,
         unit: unit || 'Stück',
         purchasePriceCt: intOrZero(purchasePriceCt),
         minStockLevel: intOrZero(minStockLevel),
         reorderPoint: intOrZero(reorderPoint),
         reorderQty: intOrZero(reorderQty),
       },
-      include: { category: true },
+      include: { category: true, group: true },
     })
     return NextResponse.json(product, { status: 201 })
   } catch (err) {

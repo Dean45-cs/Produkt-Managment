@@ -18,7 +18,7 @@ interface OpenDelivery {
   daysOut: number; openUnits: number; openValueCt: number; status: string; overdue: boolean
 }
 interface SupplierBucket {
-  supplierId: string; name: string
+  supplierId: string; name: string; settleDays: number
   openUnits: number; openValueCt: number; oldestDaysOut: number; overdue: boolean
   deliveries: OpenDelivery[]
 }
@@ -64,7 +64,7 @@ export default function ReceivablesPage() {
     <div>
       <PageHeader
         title="Offene Posten"
-        description="Welche Ware liegt noch bei deinen Verkäufern und ist nicht abgerechnet? Ladungen über 3 Tage gelten als überfällig."
+        description="Welche Ware liegt noch bei deinen Verkäufern und ist nicht abgerechnet? Überfällig ist eine Ladung, sobald sie länger draußen ist als die Frist des jeweiligen Verkäufers."
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -75,7 +75,7 @@ export default function ReceivablesPage() {
           icon={AlertTriangle}
           label="Überfällige Ladungen"
           value={data?.overdueCount || 0}
-          sub="> 3 Tage draußen"
+          sub="länger draußen als vereinbart"
           tone={(data?.overdueCount || 0) > 0 ? 'red' : 'green'}
         />
       </div>
@@ -101,6 +101,7 @@ export default function ReceivablesPage() {
                   <CardTitle className="flex items-center gap-2">
                     <Link href={`/suppliers/${s.supplierId}`} className="text-rose-600 hover:underline">{s.name}</Link>
                     {s.overdue && <Badge variant="destructive">überfällig</Badge>}
+                    <span className="text-xs font-normal text-muted-foreground">Frist {s.settleDays} Tage</span>
                   </CardTitle>
                   <div className="flex items-center gap-4 text-sm">
                     <span className="text-muted-foreground">{s.openUnits} Stück</span>

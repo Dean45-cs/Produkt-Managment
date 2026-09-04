@@ -11,6 +11,26 @@ Die Haupt-App **synchronisiert** mit dem Portal: sie lädt die offene Ware hoch 
 holt Einreichungen ab, die sie lokal als Abrechnung verbucht. Details:
 [`SECURITY.md`](./SECURITY.md) und [`portal-app/README.md`](./portal-app/README.md).
 
+## Der Ablauf
+
+1. **Einkauf** — Ware beim *Lieferanten* bestellen. Beim Wareneingang steigt
+   der Bestand.
+2. **Ladung** — einem *Verkäufer* eine feste Stückzahl mitgeben. Bei der
+   Übergabe sinkt der Bestand sofort.
+3. **Abrechnen** — der Verkäufer verkauft face2face und rechnet ab, auch in
+   mehreren Teilabrechnungen über beliebige Zeiträume. Wie lange eine Ladung
+   draußen sein darf, bevor sie als überfällig gilt, ist je Verkäufer
+   einstellbar.
+4. **Geld verbuchen** — das kassierte Geld als Einnahme in die **Kasse**, die
+   Rücklage für die nächste Bestellung per Umbuchung auf die **Bank**, den
+   Rest als Ausgabe. Gebucht wird ausschließlich von Hand; die Seite
+   *Kasse & Bank* zeigt nur, wozu noch keine Buchung existiert.
+
+*Verkäufer* und *Lieferant* sind Rollen desselben Kontakts — wer beides ist,
+bekommt beide Häkchen. Produkte lassen sich zu **Arten** zusammenfassen, unter
+denen die einzelnen **Sorten** hängen; jede Sorte hat eigenen Bestand und
+eigenen Preis.
+
 ## Getting Started
 
 First, run the development server:

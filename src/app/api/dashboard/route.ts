@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { accountBalances } from '@/lib/accounts'
 
 export async function GET() {
   const now = new Date()
@@ -14,6 +15,8 @@ export async function GET() {
     inventory,
     monthSettlements,
     allSettlements,
+    accounts,
+    balanceSums,
   ] = await Promise.all([
     prisma.delivery.findMany({
       where: { status: { in: ['DELIVERED', 'PARTIALLY_SETTLED'] } },
@@ -34,7 +37,17 @@ export async function GET() {
       where: { settledAt: { gte: startOf12MonthsAgo } },
       include: { items: { include: { product: true } } },
     }),
+    prisma.account.findMany({ select: { id: true, isReserve: true } }),
+    prisma.bookEntry.groupBy({ by: ['accountId'], _sum: { amountCt: true } }),
   ])
+
+  // Kassenbestand und Rücklage aus den Buchungen. Wird nie gespeichert,
+  // sondern immer frisch summiert.
+  const balances = accountBalances(
+    balanceSums.map((b) => ({ accountId: b.accountId, amountCt: b._sum.amountCt ?? 0 }))
+  )
+  const cashCt = accounts.filter((a) => !a.isReserve).reduce((sum, a) => sum + (balances.get(a.id) ?? 0), 0)
+  const reserveCt = accounts.filter((a) => a.isReserve).reduce((sum, a) => sum + (balances.get(a.id) ?? 0), 0)
 
   // Total inventory value
   const totalInventoryValue = inventory.reduce(
@@ -86,6 +99,8 @@ export async function GET() {
     .slice(0, 5)
 
   return NextResponse.json({
+    cashCt,
+    reserveCt,
     totalInventoryValue,
     pendingDeliveriesCount: pendingDeliveries.length,
     pendingDeliveries,

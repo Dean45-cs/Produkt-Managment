@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { centsToDecimal, euroToCents } from '@/lib/money'
 import Link from 'next/link'
 import { Plus, Trash2, AlertCircle } from 'lucide-react'
+import { ProductOptions } from '@/components/features/ProductOptions'
 import { apiFetch, jsonInit } from '@/lib/api'
 import { toast } from '@/lib/toast'
 
@@ -32,10 +33,10 @@ export default function NewDeliveryPage() {
   const [items, setItems] = useState<DeliveryItem[]>([{ productId: '', locationId: '', quantitySent: 1, expectedPriceCt: 0, batchNumber: '' }])
 
   const { data: suppliers = [] } = useQuery<Array<{ id: string; name: string }>>({
-    queryKey: ['suppliers'],
-    queryFn: () => fetch('/api/suppliers').then((r) => r.json()),
+    queryKey: ['suppliers', 'seller'],
+    queryFn: () => fetch('/api/suppliers?role=seller').then((r) => r.json()),
   })
-  const { data: products = [] } = useQuery<Array<{ id: string; name: string; sku: string; purchasePriceCt: number }>>({
+  const { data: products = [] } = useQuery<Array<{ id: string; name: string; sku: string; purchasePriceCt: number; group?: { id: string; name: string } | null }>>({
     queryKey: ['products'],
     queryFn: () => fetch('/api/products').then((r) => r.json()),
   })
@@ -146,7 +147,7 @@ export default function NewDeliveryPage() {
                     }}>
                       <SelectTrigger><SelectValue placeholder="Produkt..." /></SelectTrigger>
                       <SelectContent>
-                        {products.map((p) => <SelectItem key={p.id} value={p.id}>{p.name} ({p.sku})</SelectItem>)}
+                        <ProductOptions products={products} withSku />
                       </SelectContent>
                     </Select>
                   </div>

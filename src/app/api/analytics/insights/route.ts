@@ -22,7 +22,7 @@ export async function GET() {
     prisma.settlement.findMany({
       include: {
         delivery: { include: { supplier: true } },
-        items: { include: { product: { include: { category: true } } } },
+        items: { include: { product: { include: { category: true, group: true } } } },
       },
       orderBy: { settledAt: 'asc' },
     }),
@@ -44,6 +44,8 @@ export async function GET() {
   const monthMap = new Map<string, { revenue: number; cost: number; units: number; settlements: number }>()
   const productAgg = new Map<string, { id: string; name: string; sku: string; revenue: number; cost: number; units: number; categoryName: string | null }>()
   const categoryAgg = new Map<string, { name: string; revenue: number; cost: number; units: number }>()
+  // Umsatz je Art (Produktgruppe) — dieselbe Aggregation wie für Kategorien.
+  const groupAgg = new Map<string, { name: string; revenue: number; cost: number; units: number }>()
   const productBySupplierMap = new Map<string, {
     productId: string; productName: string; productSku: string
     supplierId: string; supplierName: string
@@ -83,6 +85,13 @@ export async function GET() {
       ca.cost += cost
       ca.units += it.quantitySold
       categoryAgg.set(cname, ca)
+
+      const gname = it.product?.group?.name ?? 'Ohne Art'
+      const ga = groupAgg.get(gname) ?? { name: gname, revenue: 0, cost: 0, units: 0 }
+      ga.revenue += it.totalAmountCt
+      ga.cost += cost
+      ga.units += it.quantitySold
+      groupAgg.set(gname, ga)
 
       const sup = s.delivery?.supplier
       if (sup) {
@@ -256,6 +265,14 @@ export async function GET() {
     })
     .sort((a, b) => b.revenue - a.revenue)
 
+  // ---------- Arten-Performance ----------
+  const groups = Array.from(groupAgg.values())
+    .map((g) => {
+      const profit = g.revenue - g.cost
+      return { name: g.name, revenue: g.revenue, profit, units: g.units, marginPct: g.revenue > 0 ? (profit / g.revenue) * 100 : 0 }
+    })
+    .sort((a, b) => b.revenue - a.revenue)
+
   // ---------- Margenverteilung der verkauften Produkte ----------
   const marginBuckets = [
     { label: '< 0 %', min: -Infinity, max: 0, count: 0 },
@@ -300,6 +317,7 @@ export async function GET() {
     abc,
     abcSummary,
     categories,
+    groups,
     invByCategory: Array.from(invByCategory.values()).sort((a, b) => b.value - a.value),
     invByLocation: Array.from(invByLocation.values()).sort((a, b) => b.value - a.value),
     deadStock: deadStock.slice(0, 50),

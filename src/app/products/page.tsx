@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import Link from 'next/link'
 import { PageHeader } from '@/components/layout/PageHeader'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { centsToEuro } from '@/lib/money'
 import { ExportButton } from '@/components/ExportButton'
@@ -26,7 +27,9 @@ interface Product {
   reorderPoint: number
   totalStock: number
   needsReorder: boolean
+  variantName?: string | null
   category?: { name: string; color?: string }
+  group?: { id: string; name: string } | null
 }
 
 function StockBadge({ stock, min, reorder }: { stock: number; min: number; reorder: number }) {
@@ -36,13 +39,35 @@ function StockBadge({ stock, min, reorder }: { stock: number; min: number; reord
   return <Badge variant="success">OK</Badge>
 }
 
+const ALL_GROUPS = 'all'
+
 export default function ProductsPage() {
   const [search, setSearch] = useState('')
+  const [groupId, setGroupId] = useState(ALL_GROUPS)
   const qc = useQueryClient()
 
+  // Von der Arten-Seite kommt man mit ?groupId=... direkt gefiltert hierher.
+  // Bewusst über location statt useSearchParams: der Hook würde diese Seite
+  // beim Build in eine Suspense-Grenze zwingen, obwohl nur der Startwert
+  // eines lokalen Filters daran hängt.
+  useEffect(() => {
+    const fromUrl = new URLSearchParams(window.location.search).get('groupId')
+    if (fromUrl) setGroupId(fromUrl)
+  }, [])
+
+  const { data: groups = [] } = useQuery<Array<{ id: string; name: string }>>({
+    queryKey: ['product-groups'],
+    queryFn: () => fetch('/api/product-groups').then((r) => r.json()),
+  })
+
   const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['products', search],
-    queryFn: () => fetch(`/api/products?search=${search}`).then((r) => r.json()),
+    queryKey: ['products', search, groupId],
+    queryFn: () => {
+      const sp = new URLSearchParams()
+      if (search) sp.set('search', search)
+      if (groupId !== ALL_GROUPS) sp.set('groupId', groupId)
+      return fetch(`/api/products?${sp}`).then((r) => r.json())
+    },
   })
 
   const deleteMutation = useMutation({
@@ -76,6 +101,15 @@ export default function ProductsPage() {
             className="pl-8"
           />
         </div>
+        {groups.length > 0 && (
+          <Select value={groupId} onValueChange={setGroupId}>
+            <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value={ALL_GROUPS}>Alle Arten</SelectItem>
+              {groups.map((g) => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
       </div>
 
       {!isLoading && products.length === 0 && !search ? (
@@ -95,6 +129,7 @@ export default function ProductsPage() {
             <TableRow>
               <TableHead>SKU</TableHead>
               <TableHead>Name</TableHead>
+              <TableHead>Art</TableHead>
               <TableHead>Kategorie</TableHead>
               <TableHead>Einheit</TableHead>
               <TableHead>EK-Preis</TableHead>
@@ -105,9 +140,9 @@ export default function ProductsPage() {
           </TableHeader>
           <TableBody>
             {isLoading ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Laden...</TableCell></TableRow>
             ) : products.length === 0 ? (
-              <TableRow><TableCell colSpan={8} className="text-center py-8 text-muted-foreground">Keine Produkte für „{search}“ gefunden</TableCell></TableRow>
+              <TableRow><TableCell colSpan={9} className="text-center py-8 text-muted-foreground">Keine Produkte für „{search}“ gefunden</TableCell></TableRow>
             ) : (
               products.map((p) => (
                 <TableRow key={p.id}>
@@ -122,8 +157,20 @@ export default function ProductsPage() {
                           <Package className="h-4 w-4" />
                         </div>
                       )}
-                      {p.name}
+                      <div className="min-w-0">
+                        <span className="block truncate">{p.name}</span>
+                        {p.variantName && (
+                          <span className="block text-xs text-muted-foreground">Sorte: {p.variantName}</span>
+                        )}
+                      </div>
                     </div>
+                  </TableCell>
+                  <TableCell>
+                    {p.group ? (
+                      <Link href={`/products?groupId=${p.group.id}`} className="text-rose-600 hover:underline">
+                        {p.group.name}
+                      </Link>
+                    ) : '—'}
                   </TableCell>
                   <TableCell>
                     {p.category && (

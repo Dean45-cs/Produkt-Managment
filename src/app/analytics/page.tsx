@@ -59,6 +59,7 @@ interface Insights {
   abc: Array<{ id: string; name: string; sku: string; categoryName: string | null; revenue: number; profit: number; units: number; marginPct: number; revenueSharePct: number; cumSharePct: number; class: string }>
   abcSummary: Array<{ class: string; productCount: number; revenue: number; revenueSharePct: number }>
   categories: Array<{ name: string; revenue: number; profit: number; units: number; marginPct: number }>
+  groups: Array<{ name: string; revenue: number; profit: number; units: number; marginPct: number }>
   invByCategory: Array<{ name: string; value: number; units: number }>
   invByLocation: Array<{ name: string; value: number; units: number }>
   deadStock: Array<{ id: string; name: string; sku: string; stock: number; valueCt: number; lastSold: string | null; daysSinceSold: number | null }>
@@ -512,6 +513,30 @@ export default function AnalyticsPage() {
             </Card>
 
             <Card>
+              <CardHeader>
+                <CardTitle>Umsatz je Art</CardTitle>
+                <p className="text-sm text-muted-foreground">Alle Sorten einer Art zusammengefasst.</p>
+              </CardHeader>
+              <CardContent>
+                {!insights || insights.groups.length === 0 ? (
+                  <EmptyHint>Noch keine Arten-Daten</EmptyHint>
+                ) : (
+                  <ResponsiveContainer width="100%" height={Math.max(220, insights.groups.length * 42)}>
+                    <BarChart data={insights.groups.map((g) => ({ name: g.name, Umsatz: g.revenue / 100, Gewinn: g.profit / 100 }))} layout="vertical" margin={{ left: 20 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis type="number" tick={{ fontSize: 11 }} tickFormatter={(v) => `${v}€`} />
+                      <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
+                      <Tooltip formatter={(v) => `${Number(v).toFixed(2)} €`} />
+                      <Legend />
+                      <Bar dataKey="Umsatz" fill="#e11d48" radius={[0, 2, 2, 0]} />
+                      <Bar dataKey="Gewinn" fill="#10b981" radius={[0, 2, 2, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
               <CardHeader><CardTitle>Umsatz je Kategorie</CardTitle></CardHeader>
               <CardContent>
                 {!insights || insights.categories.length === 0 ? (
@@ -651,7 +676,7 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2"><AlertTriangle className="h-4 w-4 text-red-600" /> Nachbestellen</CardTitle>
-                <p className="text-sm text-muted-foreground">Produkte auf oder unter dem Meldebestand — beim Großhändler nachordern.</p>
+                <p className="text-sm text-muted-foreground">Produkte auf oder unter dem Meldebestand — beim Lieferanten nachordern.</p>
               </CardHeader>
               <CardContent>
                 {!insights || insights.reorderList.length === 0 ? (
